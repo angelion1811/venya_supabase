@@ -1,0 +1,105 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:ven_app/Assistants/request_assistant.dart';
+import 'package:ven_app/global/global.dart';
+import 'package:ven_app/global/map_key.dart';
+import 'package:ven_app/infoHandler/app_info.dart';
+import 'package:ven_app/models/predicted_places.dart';
+import 'package:ven_app/widgets/progress_dialog.dart';
+
+import '../models/directions.dart';
+
+class PlacePredictionTileDesign extends StatefulWidget {
+  //const PlacePredictionTileDesign({Key? key}) : super(key: key);
+
+  final PredictedPlaces? predictedPlaces;
+
+  PlacePredictionTileDesign({this.predictedPlaces});
+
+  @override
+  State<PlacePredictionTileDesign> createState() => _PlacePredictionTileDesignState();
+}
+
+class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
+
+  getPlaceDirectionDetails(String? placeId, context) async {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => ProgressDialog(
+          message: "Setting up Drop-off, Please wait....",
+        )
+    );
+
+    String placeDirectionDetailUrl = "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&keys=$mapKey";
+
+    var responseApi = await RequestAssistant.receiveRequest(placeDirectionDetailUrl);
+    
+    Navigator.pop(context);
+    if(responseApi == "Error Ocurred. Failed. No Response."){
+      return;
+    }
+
+    if(responseApi['status'] == "Ok"){
+      Directions directions = Directions();
+      directions.locationName = responseApi["result"]["name"];
+      directions.locationId = placeId;
+      directions.locationLatitude = responseApi["result"]["geometry"]["location"]["lat"];
+      directions.locationLongitude = responseApi["result"]["geometry"]["location"]["lng"];
+
+      Provider.of<AppInfo>(context, listen: false).updateDroffLocationAddress(directions);
+
+      setState(() {
+        userDropOffAddress = directions.locationName!;
+      });
+
+      Navigator.pop(context, "obtainedDropoff");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool darkTheme = MediaQuery.of(context).platformBrightness == Brightness.dark;
+
+    return ElevatedButton(
+        onPressed: (){
+          getPlaceDirectionDetails(widget.predictedPlaces!.place_id, context);
+        },
+        style: ElevatedButton.styleFrom(
+          primary: darkTheme? Colors.black: Colors.white
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(0.0),
+          child: Row(
+            children: [
+              Icon(
+                  Icons.add_location,
+                  color: darkTheme? Colors.amber.shade400: Colors.blue,
+              ),
+              SizedBox(width: 10,),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.predictedPlaces!.main_text!,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: darkTheme? Colors.amber.shade400 : Colors.blue,
+                    )
+                  ),
+                  Text(
+                      widget.predictedPlaces!.secondary_text!,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: darkTheme? Colors.amber.shade400 : Colors.blue,
+                      )
+                  )
+                ],
+              ))
+            ]
+          ),
+        )
+    );
+  }
+}

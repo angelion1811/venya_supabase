@@ -1,0 +1,81 @@
+
+import 'dart:developer';
+
+import 'package:firebase_database/firebase_database.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:ven_app/Assistants/request_assistant.dart';
+import 'package:ven_app/global/global.dart';
+import 'package:ven_app/global/map_key.dart';
+import 'package:ven_app/infoHandler/app_info.dart';
+import 'package:ven_app/models/directions.dart';
+import 'package:ven_app/models/user_model.dart';
+
+import '../models/direction_details_info.dart';
+
+class AssistantMethods {
+
+  static void readCurrentOnLineUserInfo() async {
+    currentUser = firebaseAuth.currentUser;
+    DatabaseReference userRef = FirebaseDatabase.instance
+      .ref()
+      .child("users")
+      .child(currentUser!.uid);
+
+    userRef.once().then((snap){
+      if(snap.snapshot.value != null){
+        userModelCurrentInfo = UserModel.fromSnapshot(snap.snapshot);
+      }
+    });
+  }
+
+  static Future<String> searchAddressForGeographicCoordinates(Position position, context) async {
+
+    String apiUrl = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$mapKey';
+    String humanReadableAddress = "";
+    var requestResponse = await RequestAssistant.receiveRequest(apiUrl);
+    //log("requestResponse $requestResponse");
+    if(requestResponse != "Error Ocurred. Failed. No Response."){
+      humanReadableAddress = requestResponse['results'][0]["formatted_address"];
+
+      Directions userPickAddress = Directions();
+      userPickAddress.locationLatitude = position.latitude;
+      userPickAddress.locationLongitude = position.longitude;
+      userPickAddress.locationName = humanReadableAddress;
+
+      Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(userPickAddress);
+    }
+    return humanReadableAddress;
+  }
+
+  static Future<DirectionDetailsInfo> obtainOriginToDestinationDirectionDetails(LatLng originPosition, LatLng destinationPosition) async {
+    String urlOriginToDestinationDirectionsDetails = 'https://maps.googleapis.com/maps/api/directions/json?origin=${originPosition
+        .latitude},${originPosition.longitude}&destination=${destinationPosition
+        .latitude},${destinationPosition.longitude}&key=$mapKey';
+    var responseDirectionApi = await RequestAssistant.receiveRequest(
+        urlOriginToDestinationDirectionsDetails);
+
+    /*
+    if (responseDirectionApi == "Error Ocurred. Failed. No Response.") {
+      return null;
+    }
+
+     */
+
+    DirectionDetailsInfo directionDetailsInfo = DirectionDetailsInfo();
+    directionDetailsInfo.e_points =
+    responseDirectionApi["routes"][0]["overview_polyline"]["points"];
+
+    directionDetailsInfo.distance_text =
+    responseDirectionApi["routes"][0]["legs"][0]["distance"]["text"];
+    directionDetailsInfo.distance_value =
+    responseDirectionApi["routes"][0]["legs"][0]["distance"]["value"];
+    directionDetailsInfo.duration_text =
+    responseDirectionApi["routes"][0]["legs"][0]["duration"]["text"];
+    directionDetailsInfo.duration_value =
+    responseDirectionApi["routes"][0]["legs"][0]["duration"]["value"];
+
+    return directionDetailsInfo;
+  }
+}

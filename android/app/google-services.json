@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "223294394532",
+    "project_id": "venapp-e477d",
+    "storage_bucket": "venapp-e477d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:223294394532:android:333008727cb2b28cc61631",
+        "android_client_info": {
+          "package_name": "com.example.ven_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTGh89i1Ce_7xjXKsyW4KVi2ogX8K87_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
