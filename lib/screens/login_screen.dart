@@ -7,6 +7,8 @@ import 'package:ven_app/global/global.dart';
 import 'package:ven_app/screens/forgot_password_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
 import 'package:ven_app/screens/register_screen.dart';
+import 'package:ven_app/splashScreen/splash_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -28,9 +30,20 @@ class _LoginScreenState extends State<LoginScreen> {
           email: emailTextEditingContentController.text.trim(),
           password: passwordTextEditingContentController.text.trim()
       ).then((auth)  async {
-        currentUser = auth.user;
-        await Fluttertoast.showToast(msg: "Inicio de sesión exitosamente");
-        Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
+       DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users");
+        userRef.child(firebaseAuth.currentUser!.uid).once().then((value) async {
+          final snap = value.snapshot;
+          if(snap.value != null){
+            currentUser = auth.user;
+            currentUser = auth.user;
+            await Fluttertoast.showToast(msg: "Inicio de sesión exitosamente");
+            Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
+          } else {
+            await Fluttertoast.showToast(msg: "No hay registro con este correo");
+            firebaseAuth.signOut();
+            Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
+          }
+        });
       }).catchError((errorMessage){
         Fluttertoast.showToast(msg: "Error ocurrido \n $errorMessage");
       });

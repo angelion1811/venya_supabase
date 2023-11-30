@@ -1,21 +1,25 @@
 import 'dart:async';
+import 'dart:developer';
+import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoder2/geocoder2.dart';
 import 'package:location/location.dart' as loc;
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
-import 'package:geocoder2/geocoder2.dart';
+import 'package:ven_app/Assistants/geofire_assistant.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/global/map_key.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
+import 'package:ven_app/models/active_nearby_available_drivers.dart';
 import 'package:ven_app/screens/drawer_screen.dart';
 import 'package:ven_app/screens/precise_pickup_location.dart';
 import 'package:ven_app/screens/search_places_screen.dart';
 import 'package:ven_app/widgets/progress_dialog.dart';
-
 import '../models/directions.dart';
+
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
 
@@ -80,12 +84,107 @@ class _MainScreenState extends State<MainScreen> {
     userName = userModelCurrentInfo!.name!;
     useEmail = userModelCurrentInfo!.email!;
 
-    //initializedCodeFireListener();
+    initializeGeoFireListener();
     //
     //AssistantMethods.readTripsKeysForOnlineUser(context);
 
+  }
+
+  initializeGeoFireListener(){
+    log("initializeGeoFireListener 1");
+    Geofire.initialize("activeDrivers");
+    log("initializeGeoFireListener 2");
+    Geofire.queryAtLocation(userCurrentPosition!.latitude, userCurrentPosition!.longitude, 10)!
+        .listen((map) {
+      print(map);
+      log("map: ${map}");
+      if(map != null){
+        var callBack = map["callBack"];
+
+        switch(callBack){
+        // whenever any driver become active/online
+          case Geofire.onKeyEntered:
+            ActiveNearByAvailableDrivers activeNearByAvailableDrivers = ActiveNearByAvailableDrivers();
+            activeNearByAvailableDrivers.locationLatitude = map["latitude"];
+            activeNearByAvailableDrivers.locationLongitude = map["longitude"];
+            activeNearByAvailableDrivers.driverId = map["key"];
+            GeoFireAssistant.activeNearByAvailableDriversList.add(activeNearByAvailableDrivers);
+            if(activeNearbyDriverKeysLoaded == true){
+              displayActiveDriversOnUserMap();
+            }
+            break;
+
+        // whenever any driver become non-active/online
+          case Geofire.onKeyExited:
+            GeoFireAssistant.deleteOfflineDriverFromList(map["key"]);
+            displayActiveDriversOnUserMap();
+            break;
+
+        //whenever driver moves - update driver location
+          case Geofire.onKeyMoved:
+            ActiveNearByAvailableDrivers activeNearByAvailableDrivers = ActiveNearByAvailableDrivers();
+            activeNearByAvailableDrivers.locationLatitude = map["latitude"];
+            activeNearByAvailableDrivers.locationLongitude = map["longitude"];
+            activeNearByAvailableDrivers.driverId = map["key"];
+            GeoFireAssistant.updateActiveNearByAvailableDriverLocation(activeNearByAvailableDrivers);
+            displayActiveDriversOnUserMap();
+            break;
+
+        //display those online active drivers on user's map
+          case Geofire.onGeoQueryReady:
+            activeNearbyDriverKeysLoaded = true;
+            displayActiveDriversOnUserMap();
+            break;
+        }
+      }
+
+      setState(() {
+
+      });
+    });
+  }
+
+  displayActiveDriversOnUserMap(){
+    log("displayActiveDriversOnUserMap");
+    print("aqui  en displayActiveDriversOnUserMap");
+    setState(() {
+      markerSet.clear();
+      circleSet.clear();
+
+      Set<Marker> driversMarkerSet = Set<Marker>();
+
+      for(ActiveNearByAvailableDrivers eachDriver in GeoFireAssistant.activeNearByAvailableDriversList){
+        log("eachDriver: ${eachDriver.toString()}");
+        LatLng eachDriverActivePosition = LatLng(eachDriver.locationLatitude!, eachDriver.locationLongitude!);
+
+        Marker marker = Marker(
+            markerId: MarkerId(eachDriver.driverId!),
+            position: eachDriverActivePosition,
+            icon: activeNearbyIcon!,
+            rotation: 360,
+        );
+
+        driversMarkerSet.add(marker);
+      }
+
+      setState(() {
+        markerSet = driversMarkerSet;
+      });
+
+    });
+  }
 
 
+
+  createActiveNearByDriverIconMarker(){
+    log("createActiveNearByDriverIconMarker");
+    log(activeNearbyIcon.toString());
+    if(activeNearbyIcon == null){
+      ImageConfiguration imageConfiguration = createLocalImageConfiguration(context, size: Size(200, 200));
+      BitmapDescriptor.fromAssetImage(imageConfiguration, "images/car.png").then((value){
+        activeNearbyIcon = value;
+      });
+    }
   }
 
   Future<void> drawPolyLineFromOriginToDestination(bool darkTheme) async {
@@ -245,6 +344,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
 
     bool darkTheme = MediaQuery.of(context).platformBrightness == Brightness.dark;
+    createActiveNearByDriverIconMarker();
 
     return GestureDetector(
       onTap: (){

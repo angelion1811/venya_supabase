@@ -245,17 +245,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Divider(
                   thickness: 1,
                 ),
-
                 Text(
                   "${userModelCurrentInfo!.email!}",
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold
                   ),
-                )
-
-
-
+                ),
               ],
             ),
           ),

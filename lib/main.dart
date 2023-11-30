@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'package:ven_app/infoHandler/app_info.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/register_screen.dart';
