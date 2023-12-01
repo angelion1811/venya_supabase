@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:flutter_geofire/flutter_geofire.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoder2/geocoder2.dart';
 import 'package:location/location.dart' as loc;
@@ -33,6 +34,7 @@ class _MainScreenState extends State<MainScreen> {
   loc.Location location = loc.Location();
   String? _address;
 
+
   final Completer<GoogleMapController> _controllerGoogleMap = Completer();
   GoogleMapController? newGoogleMapController;
 
@@ -47,6 +49,7 @@ class _MainScreenState extends State<MainScreen> {
   double searchLocationContainerHeight = 220;
   double waitingResponseFromDriverContainerHeight = 0;
   double assignedDriverInfoContainerHeight = 0;
+  double suggestedRidesContainerHeight = 0;
 
   Position? userCurrentPosition;
   var geolocation = Geolocator();
@@ -72,32 +75,30 @@ class _MainScreenState extends State<MainScreen> {
   locateUserPosition() async {
     Position cPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     userCurrentPosition = cPosition;
-    
+
     LatLng latLngPosition = LatLng(userCurrentPosition!.latitude, userCurrentPosition!.longitude);
     CameraPosition cameraPosition = CameraPosition(target: latLngPosition, zoom: 15);
 
     newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
+    initializeGeoFireListener();
+
+    /*
     String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!, context);
     print("this is our address = "+humaneReableAddress);
 
     userName = userModelCurrentInfo!.name!;
     useEmail = userModelCurrentInfo!.email!;
-
-    initializeGeoFireListener();
+    */
     //
     //AssistantMethods.readTripsKeysForOnlineUser(context);
 
   }
 
   initializeGeoFireListener(){
-    log("initializeGeoFireListener 1");
     Geofire.initialize("activeDrivers");
-    log("initializeGeoFireListener 2");
-    Geofire.queryAtLocation(userCurrentPosition!.latitude, userCurrentPosition!.longitude, 10)!
-        .listen((map) {
+    Geofire.queryAtLocation(userCurrentPosition!.latitude, userCurrentPosition!.longitude, 10)!.listen((map) {
       print(map);
-      log("map: ${map}");
       if(map != null){
         var callBack = map["callBack"];
 
@@ -145,8 +146,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   displayActiveDriversOnUserMap(){
-    log("displayActiveDriversOnUserMap");
-    print("aqui  en displayActiveDriversOnUserMap");
     setState(() {
       markerSet.clear();
       circleSet.clear();
@@ -154,7 +153,6 @@ class _MainScreenState extends State<MainScreen> {
       Set<Marker> driversMarkerSet = Set<Marker>();
 
       for(ActiveNearByAvailableDrivers eachDriver in GeoFireAssistant.activeNearByAvailableDriversList){
-        log("eachDriver: ${eachDriver.toString()}");
         LatLng eachDriverActivePosition = LatLng(eachDriver.locationLatitude!, eachDriver.locationLongitude!);
 
         Marker marker = Marker(
@@ -180,8 +178,8 @@ class _MainScreenState extends State<MainScreen> {
     log("createActiveNearByDriverIconMarker");
     log(activeNearbyIcon.toString());
     if(activeNearbyIcon == null){
-      ImageConfiguration imageConfiguration = createLocalImageConfiguration(context, size: Size(200, 200));
-      BitmapDescriptor.fromAssetImage(imageConfiguration, "images/car.png").then((value){
+      ImageConfiguration imageConfiguration = createLocalImageConfiguration(context, size: Size(1,1));
+      BitmapDescriptor.fromAssetImage(imageConfiguration, "images/car3.png").then((value){
         activeNearbyIcon = value;
       });
     }
@@ -304,6 +302,13 @@ class _MainScreenState extends State<MainScreen> {
     });
 
   }
+
+  void showSuggestedRidesContainer(){
+    setState(() {
+      suggestedRidesContainerHeight = 400;
+      bottonPaddingOfMap = 400;
+    });
+  }
   /*
   getAddressFromLatlng() async {
     try {
@@ -423,7 +428,7 @@ class _MainScreenState extends State<MainScreen> {
                 left: 0,
               right: 0,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 50, 20, 20),
+                padding: EdgeInsets.fromLTRB(10, 50, 10, 10),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -534,7 +539,7 @@ class _MainScreenState extends State<MainScreen> {
                                     Navigator.push(context, MaterialPageRoute(builder: (c)=> PrecisePickUpScreen()));
                                   },
                                   child: Text(
-                                    "Change pick up",
+                                    "Change pick up Address",
                                     style: TextStyle(
                                       color: darkTheme ? Colors.black: Colors.white,
                                     ),
@@ -550,10 +555,16 @@ class _MainScreenState extends State<MainScreen> {
                               SizedBox(width: 10,),
                               ElevatedButton(
                                 onPressed: (){
+                                    if(Provider.of<AppInfo>(context, listen: false).userDropOffLocation != null){
+                                      showSuggestedRidesContainer();
+                                    } else {
+                                      Fluttertoast.showToast(msg: "Please select destination location");
+                                    }
+                                    showSuggestedRidesContainer();
 
                                 },
                                 child: Text(
-                                  "Request a ride",
+                                  "Show fare",
                                   style: TextStyle(
                                     color: darkTheme ? Colors.black: Colors.white,
                                   ),
@@ -574,6 +585,90 @@ class _MainScreenState extends State<MainScreen> {
                   ],
                 ),
               ),
+            ),
+            Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  height: suggestedRidesContainerHeight,
+                  decoration: BoxDecoration(
+                    color: darkTheme? Colors.black: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(20),
+                      topLeft: Radius.circular(20),
+                    )
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child:Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: darkTheme? Colors.amber.shade400 : Colors.blue,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              child: Icon(
+                                Icons.star,
+                                color: Colors.white,
+                              ),
+                            ),
+
+                            SizedBox(width: 15,),
+
+                            Text(
+                              Provider.of<AppInfo>(context).userPickUpLocation != null?
+                              (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).substring(0, 24) +'...'
+                                  :
+                              'No se obtiene direccion',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+
+                          ],
+                        ),
+
+                        SizedBox(height: 20,),
+
+                        Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.grey,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              child: Icon(
+                                Icons.star,
+                                color: Colors.white,
+                              ),
+                            ),
+
+                            SizedBox(width: 15,),
+
+                            Text(
+                              Provider.of<AppInfo>(context).userDropOffLocation != null?
+                              (Provider.of<AppInfo>(context).userDropOffLocation!.locationName!).substring(0, 24) +'...'
+                                  :
+                              'a donde vas?',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+
+                          ],
+                        ),
+
+                      ],
+                    )
+                  ),
+                )
             )
             /*
             //ui for search location
