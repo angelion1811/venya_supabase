@@ -83,10 +83,10 @@ class _MainScreenState extends State<MainScreen> {
 
     initializeGeoFireListener();
 
-    /*
-    String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!, context);
-    print("this is our address = "+humaneReableAddress);
 
+    String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
+    print("this is our address = "+humaneReableAddress);
+/*
     userName = userModelCurrentInfo!.name!;
     useEmail = userModelCurrentInfo!.email!;
     */

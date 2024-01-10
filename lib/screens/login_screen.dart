@@ -83,7 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-
                               TextFormField(
                                   inputFormatters:[
                                     LengthLimitingTextInputFormatter(100)

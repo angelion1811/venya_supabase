@@ -48,21 +48,18 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
 
     newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
-    String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!, context);
+    String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
   }
 
   getAddressFromLatlng() async {
     try {
-      GeoData data = await Geocoder2.getDataFromCoordinates(
-          latitude: pickLocation!.latitude,
-          longitude: pickLocation!.longitude,
-          googleMapApiKey: mapKey
-      );
+      String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(pickLocation!.latitude, pickLocation!.longitude, context);
+
       setState(() {
         Directions userPickUpAddress = Directions();
         userPickUpAddress.locationLatitude = pickLocation!.latitude;
         userPickUpAddress.locationLongitude = pickLocation!.longitude;
-        userPickUpAddress.locationName = data.address;
+        userPickUpAddress.locationName = humaneReableAddress;
 
         Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(userPickUpAddress);
       });
@@ -96,7 +93,7 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
                 setState(() {
                     bottonPaddingOfMap = 50;
                 });
-
+                print("changing location");
                 locateUserPosition();
               },
               onCameraMove:(CameraPosition? position){
@@ -129,9 +126,13 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
                   ),
                   padding: EdgeInsets.all(20),
                   child: Text(
-                    Provider.of<AppInfo>(context).userPickUpLocation != null
-                        ? (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).substring(0, 24) +'...'
-                        : 'No se obtiene direccion',
+                          Provider.of<AppInfo>(context).userPickUpLocation != null?
+                              (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).length < 24?
+                                (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!)
+                                  :
+                                (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).substring(0, 24) +'...'
+                              :
+                            'No se obtiene direccion',
                     overflow: TextOverflow.visible,
                     softWrap: true,
                   ),
@@ -144,6 +145,7 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
                       padding: EdgeInsets.all(12),
                       child: ElevatedButton(
                         onPressed: () {
+                          //locateUserPosition();
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(

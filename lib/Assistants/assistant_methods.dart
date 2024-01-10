@@ -30,20 +30,22 @@ class AssistantMethods {
     });
   }
 
-  static Future<String> searchAddressForGeographicCoordinates(Position position, context) async {
+  static Future<String> searchAddressForGeographicCoordinates( double clatitude, double clongitude , context) async {
 
-    String apiUrl = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$mapKey';
+    //String apiUrl = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$mapKey';
+    String apiUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=${clatitude}&lon=${clongitude}';
+    print("apiUrl");
+    print(apiUrl);
     String humanReadableAddress = "";
     var requestResponse = await RequestAssistant.receiveRequest(apiUrl);
+    print(requestResponse);
     //log("requestResponse $requestResponse");
     if(requestResponse != "Error Ocurred. Failed. No Response."){
-      humanReadableAddress = requestResponse['results'][0]["formatted_address"];
-
+      humanReadableAddress = requestResponse['display_name'];
       Directions userPickAddress = Directions();
-      userPickAddress.locationLatitude = position.latitude;
-      userPickAddress.locationLongitude = position.longitude;
+      userPickAddress.locationLatitude = clatitude;
+      userPickAddress.locationLongitude = clongitude;
       userPickAddress.locationName = humanReadableAddress;
-
       Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(userPickAddress);
     }
     return humanReadableAddress;
