@@ -22,14 +22,32 @@ class PlacePredictionTileDesign extends StatefulWidget {
 
 class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
 
-  getPlaceDirectionDetails(String? placeId, context) async {
+  getPlaceDirectionDetails(PredictedPlaces? cPredictedPlaces, String? placeId, context) async {
     showDialog(
         context: context,
         builder: (BuildContext context) => ProgressDialog(
           message: "Setting up Drop-off, Please wait....",
         )
     );
+    print('cPredictedPlaces');
+    print(cPredictedPlaces!.place_id);
+    Navigator.pop(context);
+    if(cPredictedPlaces == null){
+      return;
+    }
+    Directions directions = Directions();
+    directions.locationName = cPredictedPlaces.secondary_text;
+    directions.locationId = cPredictedPlaces.place_id;
+    directions.locationLatitude = cPredictedPlaces.latitude;
+    directions.locationLongitude = cPredictedPlaces.longitude;
+    Provider.of<AppInfo>(context, listen: false).updateDroffLocationAddress(directions);
+    setState(() {
+      userDropOffAddress = directions.locationName!;
+    });
 
+    Navigator.pop(context, "obtainedDropoff");
+
+    /*
     String placeDirectionDetailUrl = "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&keys=$mapKey";
 
     var responseApi = await RequestAssistant.receiveRequest(placeDirectionDetailUrl);
@@ -45,15 +63,14 @@ class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
       directions.locationId = placeId;
       directions.locationLatitude = responseApi["result"]["geometry"]["location"]["lat"];
       directions.locationLongitude = responseApi["result"]["geometry"]["location"]["lng"];
-
       Provider.of<AppInfo>(context, listen: false).updateDroffLocationAddress(directions);
-
       setState(() {
         userDropOffAddress = directions.locationName!;
       });
 
       Navigator.pop(context, "obtainedDropoff");
     }
+    */
   }
 
   @override
@@ -62,7 +79,7 @@ class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
 
     return ElevatedButton(
         onPressed: (){
-          getPlaceDirectionDetails(widget.predictedPlaces!.place_id, context);
+          getPlaceDirectionDetails(widget.predictedPlaces, widget.predictedPlaces!.place_id, context);
         },
         style: ElevatedButton.styleFrom(
           primary: darkTheme? Colors.black: Colors.white

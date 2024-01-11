@@ -52,12 +52,21 @@ class AssistantMethods {
   }
 
   static Future<DirectionDetailsInfo> obtainOriginToDestinationDirectionDetails(LatLng originPosition, LatLng destinationPosition) async {
+    /*
+    //google maps
     String urlOriginToDestinationDirectionsDetails = 'https://maps.googleapis.com/maps/api/directions/json?origin=${originPosition
         .latitude},${originPosition.longitude}&destination=${destinationPosition
         .latitude},${destinationPosition.longitude}&key=$mapKey';
+    */
+    String urlOriginToDestinationDirectionsDetails = 'http://router.project-osrm.org/route/v1/driving/${originPosition.longitude},${originPosition.latitude};${destinationPosition.longitude},${destinationPosition.latitude}?steps=true&annotations=true&geometries=geojson&overview=full';
+    print('urlOriginToDestinationDirectionsDetails');
+    print(urlOriginToDestinationDirectionsDetails);
+
     var responseDirectionApi = await RequestAssistant.receiveRequest(
         urlOriginToDestinationDirectionsDetails);
 
+    print("responseDirectionApi");
+    print(responseDirectionApi);
     /*
     if (responseDirectionApi == "Error Ocurred. Failed. No Response.") {
       return null;
@@ -67,16 +76,12 @@ class AssistantMethods {
 
     DirectionDetailsInfo directionDetailsInfo = DirectionDetailsInfo();
     directionDetailsInfo.e_points =
-    responseDirectionApi["routes"][0]["overview_polyline"]["points"];
+    responseDirectionApi["routes"][0]["geometry"]["coordinates"];
 
-    directionDetailsInfo.distance_text =
-    responseDirectionApi["routes"][0]["legs"][0]["distance"]["text"];
-    directionDetailsInfo.distance_value =
-    responseDirectionApi["routes"][0]["legs"][0]["distance"]["value"];
-    directionDetailsInfo.duration_text =
-    responseDirectionApi["routes"][0]["legs"][0]["duration"]["text"];
-    directionDetailsInfo.duration_value =
-    responseDirectionApi["routes"][0]["legs"][0]["duration"]["value"];
+    directionDetailsInfo.distance_text = (responseDirectionApi["routes"][0]["distance"]).toString();
+    directionDetailsInfo.distance_value = responseDirectionApi["routes"][0]["distance"];
+    directionDetailsInfo.duration_text = (responseDirectionApi["routes"][0]["duration"]).toString();
+    directionDetailsInfo.duration_value = responseDirectionApi["routes"][0]["duration"];
 
     return directionDetailsInfo;
   }

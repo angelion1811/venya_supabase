@@ -8,6 +8,7 @@ import 'package:location/location.dart' as loc;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
+import 'package:ven_app/Helpers/custom_functions.dart';
 
 import '../global/map_key.dart';
 import '../infoHandler/app_info.dart';
@@ -89,7 +90,6 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
               onMapCreated: (GoogleMapController controller){
                 _controllerGoogleMap.complete(controller);
                 newGoogleMapController = controller;
-
                 setState(() {
                     bottonPaddingOfMap = 50;
                 });
@@ -126,13 +126,7 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
                   ),
                   padding: EdgeInsets.all(20),
                   child: Text(
-                          Provider.of<AppInfo>(context).userPickUpLocation != null?
-                              (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).length < 24?
-                                (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!)
-                                  :
-                                (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).substring(0, 24) +'...'
-                              :
-                            'No se obtiene direccion',
+                    displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
                     overflow: TextOverflow.visible,
                     softWrap: true,
                   ),

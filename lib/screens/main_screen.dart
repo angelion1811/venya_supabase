@@ -11,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/Assistants/geofire_assistant.dart';
+import 'package:ven_app/Helpers/custom_functions.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/global/map_key.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
@@ -171,8 +172,6 @@ class _MainScreenState extends State<MainScreen> {
 
     });
   }
-
-
 
   createActiveNearByDriverIconMarker(){
     log("createActiveNearByDriverIconMarker");
@@ -464,12 +463,8 @@ class _MainScreenState extends State<MainScreen> {
                                               )
                                             ),
                                             Text(
-                                                Provider.of<AppInfo>(context).userPickUpLocation != null?
-                                                    (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).substring(0, 24) +'...'
-                                                    :
-                                                    'No se obtiene direccion',
+                                              displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
                                               style: TextStyle(color: Colors.grey, fontSize: 14),
-
                                             ),
                                           ],
                                         )
@@ -513,12 +508,8 @@ class _MainScreenState extends State<MainScreen> {
                                                 )
                                             ),
                                             Text(
-                                              Provider.of<AppInfo>(context).userDropOffLocation != null?
-                                              Provider.of<AppInfo>(context).userDropOffLocation!.locationName!
-                                                  :
-                                              'No se obtiene direccion',
+                                              displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
                                               style: TextStyle(color: Colors.grey, fontSize: 14),
-
                                             ),
                                           ],
                                         )
@@ -619,11 +610,7 @@ class _MainScreenState extends State<MainScreen> {
 
                             SizedBox(width: 15,),
 
-                            Text(
-                              Provider.of<AppInfo>(context).userPickUpLocation != null?
-                              (Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).substring(0, 24) +'...'
-                                  :
-                              'No se obtiene direccion',
+                            Text(displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
@@ -648,14 +635,9 @@ class _MainScreenState extends State<MainScreen> {
                                 color: Colors.white,
                               ),
                             ),
-
                             SizedBox(width: 15,),
-
                             Text(
-                              Provider.of<AppInfo>(context).userDropOffLocation != null?
-                              (Provider.of<AppInfo>(context).userDropOffLocation!.locationName!).substring(0, 24) +'...'
-                                  :
-                              'a donde vas?',
+                              displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,

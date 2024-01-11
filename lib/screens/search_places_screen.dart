@@ -16,14 +16,25 @@ class _SearchPlacesScreenState extends State<SearchPlacesScreen> {
   List<PredictedPlaces> placesPredictedList = [];
   findPlaceAutoComplete(String inputText) async {
     if(inputText.length > 1){
-      String urlAutoCompleteSearch = "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$inputText&keys=$mapKey&components=country:BD";
+      //String urlAutoCompleteSearch = "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$inputText&keys=$mapKey&components=country:BD";
+      String urlAutoCompleteSearch = 'https://nominatim.openstreetmap.org/search?q=${inputText}&limit=20&format=json&addressdetails=1';
+      print('urlAutoCompleteSearch');
+      print(urlAutoCompleteSearch);
 
       var responseApiAutoCompleteSearch = await RequestAssistant.receiveRequest(urlAutoCompleteSearch);
 
       if(responseApiAutoCompleteSearch == "Error Ocurred. Failed. No Response."){
         return;
       }
+      print('responseApiAutoCompleteSearch');
+      print(responseApiAutoCompleteSearch.toString());
+      if(responseApiAutoCompleteSearch!.length > 0){
+        var placePredictions = responseApiAutoCompleteSearch;
+        var placePredictionsList = (placePredictions as List).map((jsonData) => PredictedPlaces.fromJson(jsonData)).toList();
+        setState(() { placesPredictedList = placePredictionsList; });
+      }
 
+      /*
       if(responseApiAutoCompleteSearch["status"] == "OK"){
         var placePredictions = responseApiAutoCompleteSearch["predictions"];
 
@@ -33,6 +44,7 @@ class _SearchPlacesScreenState extends State<SearchPlacesScreen> {
           placesPredictedList = placePredictionsList;
         });
       }
+       */
     }
   }
 
