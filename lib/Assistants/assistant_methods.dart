@@ -71,17 +71,18 @@ class AssistantMethods {
     if (responseDirectionApi == "Error Ocurred. Failed. No Response.") {
       return null;
     }
-
      */
+
+
 
     DirectionDetailsInfo directionDetailsInfo = DirectionDetailsInfo();
     directionDetailsInfo.e_points =
     responseDirectionApi["routes"][0]["geometry"]["coordinates"];
 
     directionDetailsInfo.distance_text = (responseDirectionApi["routes"][0]["distance"]).toString();
-    directionDetailsInfo.distance_value = responseDirectionApi["routes"][0]["distance"];
+    directionDetailsInfo.distance_value = (responseDirectionApi["routes"][0]["distance"]).toInt();
     directionDetailsInfo.duration_text = (responseDirectionApi["routes"][0]["duration"]).toString();
-    directionDetailsInfo.duration_value = responseDirectionApi["routes"][0]["duration"];
+    directionDetailsInfo.duration_value = (responseDirectionApi["routes"][0]["duration"]).toInt();
 
     return directionDetailsInfo;
   }

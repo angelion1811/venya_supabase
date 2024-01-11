@@ -204,6 +204,7 @@ class _MainScreenState extends State<MainScreen> {
 
     Navigator.pop(context);
 
+    /*
     PolylinePoints pPOints = PolylinePoints();
     List<PointLatLng> decodePolylinePointsResultList = pPOints.decodePolyline(directionDetailsInfo.e_points!);
 
@@ -214,7 +215,13 @@ class _MainScreenState extends State<MainScreen> {
         pLineCoordinatedList.add(LatLng(pointLatLng.latitude, pointLatLng.longitude));
       });
     }
-
+    */
+    if(directionDetailsInfo.e_points!.isNotEmpty){
+        var list = directionDetailsInfo.e_points;
+        for(int i=0; i< list.length; i++){
+          pLineCoordinatedList.add(LatLng(list[i][1], list[i][0]));
+        }
+    }
     polylineSet.clear();
 
     setState(() {
@@ -486,6 +493,7 @@ class _MainScreenState extends State<MainScreen> {
                                       var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen()));
 
                                       if(responseFromSearch == 'obtainedDropoff'){
+                                        print("llegamos aca");
                                         setState(() {
                                           openNavigatorDrawer = false;
                                         });
