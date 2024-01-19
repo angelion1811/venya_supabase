@@ -19,6 +19,7 @@ import 'package:ven_app/models/active_nearby_available_drivers.dart';
 import 'package:ven_app/screens/drawer_screen.dart';
 import 'package:ven_app/screens/precise_pickup_location.dart';
 import 'package:ven_app/screens/search_places_screen.dart';
+import 'package:ven_app/widgets/card_vehicle_type.dart';
 import 'package:ven_app/widgets/progress_dialog.dart';
 import '../models/directions.dart';
 
@@ -72,6 +73,8 @@ class _MainScreenState extends State<MainScreen> {
   bool activeNearbyDriverKeysLoaded = false;
 
   BitmapDescriptor? activeNearbyIcon;
+
+  String selectedVehicleType = "";
 
   locateUserPosition() async {
     Position cPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
@@ -216,13 +219,17 @@ class _MainScreenState extends State<MainScreen> {
       });
     }
     */
+    pLineCoordinatedList.clear();
+
     if(directionDetailsInfo.e_points!.isNotEmpty){
         var list = directionDetailsInfo.e_points;
         for(int i=0; i< list.length; i++){
           pLineCoordinatedList.add(LatLng(list[i][1], list[i][0]));
         }
     }
-    polylineSet.clear();
+    setState(() {
+      polylineSet.clear();
+    });
 
     setState(() {
       Polyline polyline = Polyline(
@@ -601,6 +608,7 @@ class _MainScreenState extends State<MainScreen> {
                   child: Padding(
                     padding: EdgeInsets.all(20),
                     child:Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
@@ -655,6 +663,83 @@ class _MainScreenState extends State<MainScreen> {
                           ],
                         ),
 
+                        SizedBox(height: 20,),
+
+                        Text("SUGGESTED RIDES", style: TextStyle(fontWeight: FontWeight.bold),),
+
+                        SizedBox(height: 20,),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            GestureDetector(
+                              onTap: (){
+                                setState(() {
+                                  selectedVehicleType = "Car";
+                                });
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: selectedVehicleType == "Car"? (darkTheme?Colors.amber.shade400:Colors.blue):(darkTheme?Colors.black54:Colors.grey[100]),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.all(25.0),
+                                  child: Column(
+                                    children: [
+                                      Image.asset("images/car5.png", scale: 8,),
+                                      SizedBox( height: 8,),
+                                      Text(
+                                          "Car",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: selectedVehicleType == "Car"? (darkTheme?Colors.black:Colors.white):(darkTheme?Colors.white:Colors.black),
+                                          ),
+                                      ),
+                                      SizedBox(height: 2,),
+                                      Text(tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*107)}'
+                                          : "",
+                                          style: TextStyle(
+                                          color: Colors.grey
+                                        )
+                                      )
+                                    ],
+                                  ),
+                                )
+                              ),
+                            ),
+                            SizedBox(width: 5,),
+                            CardVehicleType(
+                              darkTheme: darkTheme,
+                              assetImageString: "images/car5.png",
+                              assetImageScale: 8,
+                              selectedVehicleType: selectedVehicleType,
+                              vehicleTypeString: "CNG",
+                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*107).toStringAsFixed(2)}'
+                                  : "",
+                              onTap: (){
+                                setState(() {
+                                  selectedVehicleType = "CNG";
+                                });
+                              },
+                            ),
+                            SizedBox(width: 5,),
+                            CardVehicleType(
+                              darkTheme: darkTheme,
+                              assetImageString: "images/car5.png",
+                              assetImageScale: 8,
+                              selectedVehicleType: selectedVehicleType,
+                              vehicleTypeString: "Car",
+                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*107)}'
+                                  : "",
+                              onTap: (){
+                                setState(() {
+                                  selectedVehicleType = "Car";
+                                });
+                              },
+                            )
+                          ],
+                        )
                       ],
                     )
                   ),

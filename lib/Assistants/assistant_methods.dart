@@ -86,4 +86,14 @@ class AssistantMethods {
 
     return directionDetailsInfo;
   }
+
+  static double calculateFareAroundFromOriginToDestination(DirectionDetailsInfo directionDetailsInfo){
+    double timeTravelledFareAmountPerMinute = (directionDetailsInfo.distance_value! /60) * 0.1;
+    double distanceTraveledFareAmountPerKilometer = (directionDetailsInfo.distance_value!/ 1000) * 0.1;
+
+    //usd
+    double totalFareAmount = timeTravelledFareAmountPerMinute*distanceTraveledFareAmountPerKilometer;
+
+    return double.parse(totalFareAmount.toStringAsFixed(1));
+  }
 }
