@@ -1,4 +1,5 @@
 
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:firebase_database/firebase_database.dart';
@@ -11,7 +12,7 @@ import 'package:ven_app/global/map_key.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
 import 'package:ven_app/models/directions.dart';
 import 'package:ven_app/models/user_model.dart';
-
+import 'package:http/http.dart' as http;
 import '../models/direction_details_info.dart';
 
 class AssistantMethods {
@@ -95,5 +96,39 @@ class AssistantMethods {
     double totalFareAmount = timeTravelledFareAmountPerMinute*distanceTraveledFareAmountPerKilometer;
 
     return double.parse(totalFareAmount.toStringAsFixed(1));
+  }
+
+  static sendNotificationToDriverNow(String deviceRegistrationToken, String userRideRequestId, context) async {
+    String destinationAddress = userDropOffAddress;
+
+    Map<String, String> headerNotification = {
+      "Content-Type": "application/json",
+      "Authorization": cloudMessagingServerToken,
+    };
+
+    Map bodyNotification = {
+      "body": "Destination Address: \n $destinationAddress",
+      "title": "New trip Request"
+    };
+
+    Map dataMap = {
+      "click_action": "FLUTTER_NOTIFICATION_CLICK",
+      "id": "1",
+      "status": "done",
+      "rideRequestId": userRideRequestId
+    };
+
+    Map officialNotificationFormat = {
+      "notification":bodyNotification,
+      "data": dataMap,
+      "prority": "high",
+      "to": deviceRegistrationToken,
+    };
+
+    var responseNotification = http.post(
+      Uri.parse("https://fcn.googleapis.com/fcn/send"),
+      headers: headerNotification,
+      body: jsonEncode(officialNotificationFormat)
+    );
   }
 }
