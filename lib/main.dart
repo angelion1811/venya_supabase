@@ -8,6 +8,7 @@ import 'package:ven_app/screens/register_screen.dart';
 import 'package:ven_app/screens/search_places_screen.dart';
 import 'package:ven_app/splashScreen/splash_screen.dart';
 import 'package:ven_app/themeProvider/theme_provider.dart';
+import 'package:ven_app/widgets/pay_fare_amount_dialog.dart';
 
 Future<void> main() async{
   runApp(const MyApp());

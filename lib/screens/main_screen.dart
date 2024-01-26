@@ -24,6 +24,7 @@ import 'package:ven_app/splashScreen/splash_screen.dart';
 import 'package:ven_app/widgets/card_vehicle_type.dart';
 import 'package:ven_app/widgets/progress_dialog.dart';
 import '../models/directions.dart';
+import '../widgets/pay_fare_amount_dialog.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -976,7 +977,7 @@ class _MainScreenState extends State<MainScreen> {
                         Expanded(child: GestureDetector(
                           onTap: (){
                             if(selectedVehicleType != ""){
-                              //saveRideRequestInformation(selectedVehicleType)
+                              saveRideRequestInformation(selectedVehicleType);
                             } else {
                               Fluttertoast.showToast(msg: "please select a vehicle from \n suggested rides");
                             }
@@ -1007,6 +1008,82 @@ class _MainScreenState extends State<MainScreen> {
                     )
                   ),
                 )
+            ),
+
+            //Requesting  a ride
+
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: searchingForDriverContainerHeight,
+                decoration: BoxDecoration(
+                  color: darkTheme? Colors.black : Colors.white,
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15)),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      LinearProgressIndicator(
+                        color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                      ),
+                      SizedBox(height: 10,),
+                      Center(
+                        child: Text(
+                          "searching for a driver",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 20,),
+
+                      GestureDetector(
+                        onTap: (){
+                          referenceRideRequest!.remove();
+                          setState(() {
+                            searchingForDriverContainerHeight = 0;
+                            suggestedRidesContainerHeight = 0;
+                          });
+                        },
+                        child: Container(
+                          height: 50,
+                          width: 50,
+                          decoration: BoxDecoration(
+                            color: darkTheme?Colors.black : Colors.white,
+                            borderRadius: BorderRadius.circular(25),
+                            border: Border.all(width: 1, color: Colors.grey),
+                          ),
+                          child: Icon(Icons.close, size: 25,),
+                        ),
+                      ),
+
+                      SizedBox(height: 15,),
+
+                      Container(
+                        width: double.infinity,
+                        child: Text(
+                          "Cancel",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
             )
             /*
             //ui for search location
