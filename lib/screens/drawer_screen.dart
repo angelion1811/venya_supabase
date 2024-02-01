@@ -37,7 +37,7 @@ class DrawerScreen extends StatelessWidget {
 
                   Text(
                     //'user name',
-                    userModelCurrentInfo!.name!,
+                    "${userModelCurrentInfo!.name!}",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,

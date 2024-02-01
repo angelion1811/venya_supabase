@@ -3,6 +3,7 @@ import 'package:email_validator/email_validator.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/screens/forgot_password_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
@@ -35,8 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
           final snap = value.snapshot;
           if(snap.value != null){
             currentUser = auth.user;
-            currentUser = auth.user;
             await Fluttertoast.showToast(msg: "Inicio de sesión exitosamente");
+            await AssistantMethods.readCurrentOnLineUserInfo();
             Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
           } else {
             await Fluttertoast.showToast(msg: "No hay registro con este correo");

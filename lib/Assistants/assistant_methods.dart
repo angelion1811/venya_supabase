@@ -17,7 +17,7 @@ import '../models/direction_details_info.dart';
 
 class AssistantMethods {
 
-  static void readCurrentOnLineUserInfo() async {
+  static Future<void> readCurrentOnLineUserInfo() async {
     currentUser = firebaseAuth.currentUser;
     DatabaseReference userRef = FirebaseDatabase.instance
       .ref()

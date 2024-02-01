@@ -199,7 +199,7 @@ class _MainScreenState extends State<MainScreen> {
     log(activeNearbyIcon.toString());
     if(activeNearbyIcon == null){
       ImageConfiguration imageConfiguration = createLocalImageConfiguration(context, size: Size(1,1));
-      BitmapDescriptor.fromAssetImage(imageConfiguration, "images/car3.png").then((value){
+      BitmapDescriptor.fromAssetImage(imageConfiguration, "images/car_gpsmap.png").then((value){
         activeNearbyIcon = value;
       });
     }
@@ -513,7 +513,6 @@ class _MainScreenState extends State<MainScreen> {
     for(int i = 0; i < driversList.length; i++){
       if(driversList[i]["car_details"]["type"] == selectedVehicleType){
         AssistantMethods.sendNotificationToDriverNow(driversList[i]["token"], referenceRideRequest!.key!, context);
-
       }
     }
 
@@ -927,10 +926,11 @@ class _MainScreenState extends State<MainScreen> {
                           children: [
                             CardVehicleType(
                               darkTheme: darkTheme,
-                              assetImageString: "images/car5.png",
+                              assetImageString: "images/car.png",
                               assetImageScale: 9,
                               selectedVehicleType: selectedVehicleType,
-                              vehicleTypeString: "Car",
+                              vehicleType: "Car",
+                              vehicleTypeString: "Carro",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*107)}'
                                   : "",
                               onTap: (){
@@ -942,9 +942,10 @@ class _MainScreenState extends State<MainScreen> {
                             SizedBox(width: 5,),
                             CardVehicleType(
                               darkTheme: darkTheme,
-                              assetImageString: "images/CNG_car.png",
+                              assetImageString: "images/CNG.png",
                               assetImageScale: 4,
                               selectedVehicleType: selectedVehicleType,
+                              vehicleType: "CNG",
                               vehicleTypeString: "CNG",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*107).toStringAsFixed(2)}'
                                   : "",
@@ -957,15 +958,16 @@ class _MainScreenState extends State<MainScreen> {
                             SizedBox(width: 5,),
                             CardVehicleType(
                               darkTheme: darkTheme,
-                              assetImageString: "images/car5.png",
+                              assetImageString: "images/Bike.png",
                               assetImageScale: 9,
                               selectedVehicleType: selectedVehicleType,
-                              vehicleTypeString: "Car",
+                              vehicleType: "Bike",
+                              vehicleTypeString: "Moto",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*107)}'
                                   : "",
                               onTap: (){
                                 setState(() {
-                                  selectedVehicleType = "Car";
+                                  selectedVehicleType = "Bike";
                                 });
                               },
                             )

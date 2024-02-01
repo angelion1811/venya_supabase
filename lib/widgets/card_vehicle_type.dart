@@ -7,6 +7,7 @@ GestureDetector CardVehicleType(
   bool darkTheme= false,
   String assetImageString = "",
   double assetImageScale = 1,
+  String vehicleType = "",
   String vehicleTypeString = "",
   String amountString = ""
 }
@@ -15,7 +16,7 @@ GestureDetector CardVehicleType(
       onTap: onTap,
       child: Container(
           decoration: BoxDecoration(
-            color: selectedVehicleType == vehicleTypeString? (darkTheme?Colors.amber.shade400:Colors.blue):(darkTheme?Colors.black54:Colors.grey[100]),
+            color: selectedVehicleType == vehicleType? (darkTheme?Colors.amber.shade400:Colors.blue):(darkTheme?Colors.black54:Colors.grey[100]),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Padding(
@@ -28,7 +29,7 @@ GestureDetector CardVehicleType(
                  vehicleTypeString,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: selectedVehicleType == vehicleTypeString? (darkTheme?Colors.black:Colors.white):(darkTheme?Colors.white:Colors.black),
+                    color: selectedVehicleType == vehicleType? (darkTheme?Colors.black:Colors.white):(darkTheme?Colors.white:Colors.black),
                   ),
                 ),
                 SizedBox(height: 2,),
