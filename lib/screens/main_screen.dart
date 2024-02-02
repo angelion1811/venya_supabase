@@ -512,6 +512,7 @@ class _MainScreenState extends State<MainScreen> {
 
     for(int i = 0; i < driversList.length; i++){
       if(driversList[i]["car_details"]["type"] == selectedVehicleType){
+        print("va a llamar");
         AssistantMethods.sendNotificationToDriverNow(driversList[i]["token"], referenceRideRequest!.key!, context);
       }
     }
