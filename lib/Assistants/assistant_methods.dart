@@ -107,8 +107,8 @@ class AssistantMethods {
     };
 
     Map bodyNotification = {
-      "body": "Destination Address: \n $destinationAddress",
-      "title": "New trip Request"
+      "body": "Destino: \n $destinationAddress",
+      "title": "Solicitud de viaje"
     };
 
     Map dataMap = {
@@ -125,10 +125,14 @@ class AssistantMethods {
       "to": deviceRegistrationToken,
     };
 
-    var responseNotification = http.post(
-      Uri.parse("https://fcn.googleapis.com/fcn/send"),
+    print(officialNotificationFormat.toString());
+
+    var responseNotification = await http.post(
+      Uri.parse("https://fcm.googleapis.com/fcm/send"),
+       //Uri.parse('https://api.rnfirebase.io/messaging/send'),
       headers: headerNotification,
       body: jsonEncode(officialNotificationFormat)
     );
+    
   }
 }

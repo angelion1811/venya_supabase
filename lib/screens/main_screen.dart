@@ -380,7 +380,7 @@ class _MainScreenState extends State<MainScreen> {
     referenceRideRequest = FirebaseDatabase.instance.ref().child("All Ride Requests").push();
 
     var originLocation = Provider.of<AppInfo>(context, listen: false).userPickUpLocation;
-    var destinationLocation = Provider.of<AppInfo>(context, listen: false).userPickUpLocation;
+    var destinationLocation = Provider.of<AppInfo>(context, listen: false).userDropOffLocation;
 
     Map originLocationMap = {
       //"key": value"
@@ -497,8 +497,8 @@ class _MainScreenState extends State<MainScreen> {
         pLineCoordinatedList.clear();
       });
 
-      Fluttertoast.showToast(msg: "No Online nearest Driver Available");
-      Fluttertoast.showToast(msg: "Searcher Argain. \n Restarting App");
+      Fluttertoast.showToast(msg: "No hay choferes cercas disponibles");
+      Fluttertoast.showToast(msg: "Buscar de nuevo. \n Reiniciando Aplicacion");
 
       Future.delayed(Duration(milliseconds: 4000), (){
         referenceRideRequest!.remove();
@@ -512,7 +512,10 @@ class _MainScreenState extends State<MainScreen> {
 
     for(int i = 0; i < driversList.length; i++){
       if(driversList[i]["car_details"]["type"] == selectedVehicleType){
-        print("va a llamar");
+        print("va a llamar a token:");
+        print(driversList[i]["token"]);
+        print("referenceRideRequest!.key!:");
+        print(referenceRideRequest!.key!);
         AssistantMethods.sendNotificationToDriverNow(driversList[i]["token"], referenceRideRequest!.key!, context);
       }
     }
@@ -549,7 +552,6 @@ class _MainScreenState extends State<MainScreen> {
         var driverKeyInfo = dataSnapshot.snapshot.value;
 
         driversList.add(driverKeyInfo);
-        print("driver key information"+driversList.toString());
       });
     }
   }
@@ -798,10 +800,11 @@ class _MainScreenState extends State<MainScreen> {
                                     Navigator.push(context, MaterialPageRoute(builder: (c)=> PrecisePickUpScreen()));
                                   },
                                   child: Text(
-                                    "Change pick up Address",
+                                    "Cambiar dirección \n de recogida",
                                     style: TextStyle(
                                       color: darkTheme ? Colors.black: Colors.white,
                                     ),
+                                    textAlign: TextAlign.center,
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     primary: darkTheme? Colors.amber.shade400: Colors.blue,
@@ -817,13 +820,13 @@ class _MainScreenState extends State<MainScreen> {
                                     if(Provider.of<AppInfo>(context, listen: false).userDropOffLocation != null){
                                       showSuggestedRidesContainer();
                                     } else {
-                                      Fluttertoast.showToast(msg: "Please select destination location");
+                                      Fluttertoast.showToast(msg: "Por favor seleccionar \n ubicación de destino");
                                     }
                                     showSuggestedRidesContainer();
 
                                 },
                                 child: Text(
-                                  "Show fare",
+                                  "Mostrar Tarifas",
                                   style: TextStyle(
                                     color: darkTheme ? Colors.black: Colors.white,
                                   ),
@@ -932,7 +935,7 @@ class _MainScreenState extends State<MainScreen> {
                               selectedVehicleType: selectedVehicleType,
                               vehicleType: "Car",
                               vehicleTypeString: "Carro",
-                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*107)}'
+                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1)}'
                                   : "",
                               onTap: (){
                                 setState(() {
@@ -948,7 +951,7 @@ class _MainScreenState extends State<MainScreen> {
                               selectedVehicleType: selectedVehicleType,
                               vehicleType: "CNG",
                               vehicleTypeString: "CNG",
-                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*107).toStringAsFixed(2)}'
+                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}'
                                   : "",
                               onTap: (){
                                 setState(() {
@@ -964,7 +967,7 @@ class _MainScreenState extends State<MainScreen> {
                               selectedVehicleType: selectedVehicleType,
                               vehicleType: "Bike",
                               vehicleTypeString: "Moto",
-                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*107)}'
+                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1)}'
                                   : "",
                               onTap: (){
                                 setState(() {
@@ -994,7 +997,7 @@ class _MainScreenState extends State<MainScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                "Request a ride",
+                                "Solicitar viaje",
                                 style: TextStyle(
                                   color: darkTheme? Colors.black: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -1088,26 +1091,6 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ),
             )
-            /*
-            //ui for search location
-            Positioned(
-                top: 40,
-                right: 20,
-                left: 20,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    color: Colors.white,
-                  ),
-                  padding: EdgeInsets.all(20),
-                  child: Text(
-                    Provider.of<AppInfo>(context).userPickUpLocation != null?(Provider.of<AppInfo>(context).userPickUpLocation!.locationName!).substring(0, 24) +'...': 'No se obtiene direccion',
-                    overflow: TextOverflow.visible,
-                    softWrap: true,
-                  ),
-                )),
-
-             */
           ],
         ),
       ),
