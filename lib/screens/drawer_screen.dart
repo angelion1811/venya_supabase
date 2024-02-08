@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/profile_screen.dart';
+import 'package:ven_app/screens/trip_history_screen.dart';
 
 class DrawerScreen extends StatelessWidget {
   const DrawerScreen({Key? key}) : super(key: key);
@@ -49,7 +50,7 @@ class DrawerScreen extends StatelessWidget {
                       Navigator.push(context, MaterialPageRoute(builder: (c)=>ProfileScreen()));
                     },
                     child: Text(
-                      "Edit Profile",
+                      "Editar Perfil",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -60,7 +61,12 @@ class DrawerScreen extends StatelessWidget {
 
                   SizedBox(height: 30,),
 
-                  Text("Your Trips", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),),
+                  GestureDetector(
+                      onTap: (){
+                          Navigator.push(context, MaterialPageRoute(builder: (c)=> TripHistoryScreen()));
+                      },
+                      child: Text("Tus Viajes", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),)
+                  ),
                   SizedBox(height: 15,),
 
                   Text("Payment", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),),

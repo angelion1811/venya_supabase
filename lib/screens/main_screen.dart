@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/Assistants/geofire_assistant.dart';
 import 'package:ven_app/Helpers/custom_functions.dart';
@@ -19,12 +20,19 @@ import 'package:ven_app/infoHandler/app_info.dart';
 import 'package:ven_app/models/active_nearby_available_drivers.dart';
 import 'package:ven_app/screens/drawer_screen.dart';
 import 'package:ven_app/screens/precise_pickup_location.dart';
+import 'package:ven_app/screens/rate_driver_screen.dart';
 import 'package:ven_app/screens/search_places_screen.dart';
 import 'package:ven_app/splashScreen/splash_screen.dart';
 import 'package:ven_app/widgets/card_vehicle_type.dart';
 import 'package:ven_app/widgets/progress_dialog.dart';
 import '../models/directions.dart';
 import '../widgets/pay_fare_amount_dialog.dart';
+
+Future<void> _makePhoneCall(String url) async {
+  if (!await launchUrl(Uri.parse(url))) {
+    throw Exception('Could not launch $url');
+  }
+}
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -108,12 +116,12 @@ class _MainScreenState extends State<MainScreen> {
 
     String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
     print("this is our address = "+humaneReableAddress);
-/*
+
     userName = userModelCurrentInfo!.name!;
     useEmail = userModelCurrentInfo!.email!;
-    */
+
     //
-    //AssistantMethods.readTripsKeysForOnlineUser(context);
+    AssistantMethods.readTripsKeysForOnlineUser(context);
 
   }
 
@@ -127,6 +135,7 @@ class _MainScreenState extends State<MainScreen> {
         switch(callBack){
         // whenever any driver become active/online
           case Geofire.onKeyEntered:
+            GeoFireAssistant.activeNearByAvailableDriversList.clear();
             ActiveNearByAvailableDrivers activeNearByAvailableDrivers = ActiveNearByAvailableDrivers();
             activeNearByAvailableDrivers.locationLatitude = map["latitude"];
             activeNearByAvailableDrivers.locationLongitude = map["longitude"];
@@ -334,7 +343,7 @@ class _MainScreenState extends State<MainScreen> {
 
   }
 
-  void showSearchingForDriversContainer(){
+  void showUISearchingForDriversContainer(){
     setState(() {
       searchingForDriverContainerHeight = 200;
     });
@@ -420,13 +429,19 @@ class _MainScreenState extends State<MainScreen> {
 
       if((eventSnap.snapshot.value as Map)["driverPhone"] != null){
         setState(() {
-          driverCarDetails = (eventSnap.snapshot.value as Map)["driverPhone"].toString();
+          driverPhone = (eventSnap.snapshot.value as Map)["driverPhone"].toString();
         });
       }
 
       if((eventSnap.snapshot.value as Map)["driverName"] != null){
         setState(() {
-          driverCarDetails = (eventSnap.snapshot.value as Map)["driverName"].toString();
+          driverName = (eventSnap.snapshot.value as Map)["driverName"].toString();
+        });
+      }
+
+      if((eventSnap.snapshot.value as Map)["ratings"] != null){
+        setState(() {
+          driverRatings = (eventSnap.snapshot.value as Map)["ratings"].toString();
         });
       }
 
@@ -434,6 +449,8 @@ class _MainScreenState extends State<MainScreen> {
         setState(() {
           userRideRequestStatus = (eventSnap.snapshot.value as Map)["status"].toString();
         });
+        print("userRideRequestStatus");
+        print(userRideRequestStatus);
       }
 
       if((eventSnap.snapshot.value as Map)["driverLocation"] != null){
@@ -449,7 +466,7 @@ class _MainScreenState extends State<MainScreen> {
         //status = arrived
         if(userRideRequestStatus == "arrived"){
           setState(() {
-            driverRideStatus = "Driver has arrived";
+            driverRideStatus = "El Chofer ha llegado";
           });
         }
         //status = on trip
@@ -471,7 +488,9 @@ class _MainScreenState extends State<MainScreen> {
               //user can rate the driver now
               if((eventSnap.snapshot.value as Map)["driverId"] != null){
                 String assignedDriverId = (eventSnap.snapshot.value as Map)["driverId"].toString();
-                //Navigator.push(context, MaterialPageRoute(builder: (c)=> RateDriverScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (c)=> RateDriverScreen(
+                  assignedDriverId: assignedDriverId,
+                )));
 
                 referenceRideRequest!.onDisconnect();
                 tripRideRequestInfoStreamSubscription!.cancel();
@@ -522,7 +541,7 @@ class _MainScreenState extends State<MainScreen> {
 
     Fluttertoast.showToast(msg: "Notification sent successfully");
 
-    showSearchingForDriversContainer();
+    showUISearchingForDriversContainer();
     
     await FirebaseDatabase.instance.ref().child("All Ride Requests").child(referenceRideRequest!.key!).child("driverId").onValue.listen((eventRideRequestSnapshot) {
         print("EventSnapshot: ${eventRideRequestSnapshot.snapshot.value}");
@@ -534,7 +553,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   showUIForAssignedDriverInfo(){
-    setState(() {
+    setState((){
       waitingResponseFromDriverContainerHeight = 0;
       searchingForDriverContainerHeight = 0;
       assignedDriverInfoContainerHeight = 200;
@@ -570,7 +589,7 @@ class _MainScreenState extends State<MainScreen> {
       }
 
       setState(() {
-        driverRideStatus = "Driver is coming: "+directionDetailsInfo.duration_text.toString();
+        driverRideStatus = "Chofer está en camino: "+directionDetailsInfo.duration_text.toString();
       });
 
       requestPositionInfo = true;
@@ -598,7 +617,7 @@ class _MainScreenState extends State<MainScreen> {
       }
 
       setState(() {
-        driverRideStatus = "Going towards Destination"+directionDetailsInfo.duration_text.toString();
+        driverRideStatus = "Yendo hacia el destino: "+directionDetailsInfo.duration_text.toString();
       });
 
       requestPositionInfo = true;
@@ -688,6 +707,7 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 )
             ),
+
 
 
 
@@ -1017,7 +1037,6 @@ class _MainScreenState extends State<MainScreen> {
             ),
 
             //Requesting  a ride
-
             Positioned(
               bottom: 0,
               left: 0,
@@ -1040,7 +1059,7 @@ class _MainScreenState extends State<MainScreen> {
                       SizedBox(height: 10,),
                       Center(
                         child: Text(
-                          "searching for a driver",
+                          "Buscando Conductor",
                           style: TextStyle(
                             color: Colors.grey,
                             fontSize: 22,
@@ -1077,7 +1096,7 @@ class _MainScreenState extends State<MainScreen> {
                       Container(
                         width: double.infinity,
                         child: Text(
-                          "Cancel",
+                          "Cancelar",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.red,
@@ -1090,7 +1109,99 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
               ),
+            ),
+
+            //Ui de para mostrar la informacion del usuario
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: assignedDriverInfoContainerHeight,
+                decoration: BoxDecoration(
+                  color: darkTheme ? Colors.black : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Column(
+                    children: [
+                      Text(driverRideStatus, style: TextStyle(fontWeight: FontWeight.bold,)),
+                      SizedBox(height: 5),
+                      Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
+                      SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children:[
+                          Container(
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: darkTheme ? Colors.amber.shade400: Colors.lightBlue,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.person, color: darkTheme ? Colors.black : Colors.white),
+                          ),
+
+                          SizedBox(width: 10),
+                          Row(
+                            mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children:[
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children:[
+                              Text(driverName, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                              Row(
+                                children:[
+                                  Icon(Icons.star, color: Colors.orange),
+
+                                  SizedBox(width: 5),
+
+                                  Text( driverRatings??"0.00",
+                                    style: TextStyle(
+                                      color: Colors.grey
+                                    )
+                                  )
+
+                                ]
+                              )
+                            ]
+                          ),
+
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children:[
+                              Image.asset("images/car.png", scale: 10,),
+
+                              Text(driverCarDetails, style: TextStyle(fontSize: 12), )
+                              
+                            ]
+                          ),
+                          ])
+
+
+                        ]
+                      ),
+                      SizedBox(height: 5),
+                      Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          _makePhoneCall("tel: ${driverPhone}");
+                        },
+                        style:ElevatedButton.styleFrom(primary: darkTheme? Colors.amber.shade400: Colors.blue),
+                        icon: Icon(Icons.phone),
+                        label: Text("LLamar al conductor"),
+                      )
+
+                    ]
+                  )
+
+                )
+              )
             )
+
+
           ],
         ),
       ),

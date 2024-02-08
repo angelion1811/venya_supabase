@@ -14,6 +14,7 @@ String userDropOffAddress = "";
 String driverCarDetails = "";
 String driverName = "";
 String driverPhone = "";
+String driverRatings = "";
 
 double countRatingStarts = 0.0;
 String titleStartRating = "";
