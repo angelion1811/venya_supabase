@@ -109,7 +109,7 @@ class _SearchPlacesScreenState extends State<SearchPlacesScreen> {
                                       findPlaceAutoComplete(value);
                                     },
                                     decoration: InputDecoration(
-                                        hintText: "Busca localizacion here...",
+                                        hintText: "Buscar localización...",
                                         fillColor: darkTheme ? Colors.black: Colors.white54,
                                         filled: true,
                                         border: InputBorder.none,

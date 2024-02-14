@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/screens/login_screen.dart';
@@ -25,6 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final confirmPasswordTextEditingContentController = TextEditingController();
 
   bool _passwordVisible = false;
+  XFile? imageFile;
 
   //declare global key
   final _formKey = GlobalKey<FormState>();
@@ -60,6 +63,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
   }
+
+
+  chooseImageFromGallery() async {
+    final ImagePicker picker = ImagePicker();
+// Pick an image.
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    //final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if(pickedFile != null){
+      setState(() {
+        imageFile = pickedFile;
+      });
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
 
@@ -73,13 +92,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: EdgeInsets.all(0),
         children: [
           Image.asset(darkTheme? 'images/VenLogo_dark.jpg':'images/VenLogo.jpg' ),
-          SizedBox(height: 20,),
+          SizedBox(height: 10,),
+
           Center(child:Text("Registro",
             style: TextStyle(
               color: darkTheme? Colors.amber.shade400: Colors.blue,
               fontWeight: FontWeight.bold,
               fontSize: 25,
             ) ,),),
+          SizedBox( height: 10,),
+
+
+          GestureDetector(
+            onTap: (){
+              chooseImageFromGallery();
+            },
+            child:
+            Column(
+              children: [
+                imageFile == null?
+                 Container(
+                  child: CircleAvatar(
+                    radius: 70,
+                    backgroundImage: AssetImage("images/avatar.png"),
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.transparent,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(86),
+                      child: Image.asset(
+                        "images/avatar.png",
+                        fit: BoxFit.cover,
+                        width: 140, // Set the width to the desired size
+                        height: 140, // Set the height to the desired size
+                      ),
+                    ),
+                  ),
+                )
+                  :
+                    Container(
+                      width: 140,
+                        height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey,
+                        image: DecorationImage(
+                          fit: BoxFit.fitHeight,
+                          image:FileImage(
+                            File(
+                              imageFile!.path
+                            )
+                          )
+                        )
+                      ),
+                    ),
+                const SizedBox(height: 10,),
+
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Elige una foto de perfil",
+                      style: TextStyle(
+                          color: Colors.grey
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
           Padding(padding: const EdgeInsets.fromLTRB(15, 20, 15, 50),
               child:Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -96,14 +176,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ],
                                       decoration: InputDecoration(
                                         hintText: "Name",
-                                        hintStyle: TextStyle(
+                                        hintStyle: const TextStyle(
                                           color: Colors.grey
                                         ),
                                         filled: true,
                                         fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
                                         border: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(40),
-                                          borderSide: BorderSide(
+                                          borderSide: const BorderSide(
                                             width: 0,
                                             style: BorderStyle.none
                                           )
@@ -126,21 +206,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         nameTextEditingContentController.text = text;
                                       })
                                   ),
-                                  SizedBox(height: 10,),
+                                  const SizedBox(height: 10,),
                                   TextFormField(
                                     inputFormatters:[
                                       LengthLimitingTextInputFormatter(100)
                                     ],
                                     decoration: InputDecoration(
                                         hintText: "Email",
-                                        hintStyle: TextStyle(
+                                        hintStyle: const TextStyle(
                                             color: Colors.grey
                                         ),
                                         filled: true,
                                         fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
                                         border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(40),
-                                            borderSide: BorderSide(
+                                            borderSide: const BorderSide(
                                                 width: 0,
                                                 style: BorderStyle.none
                                             )
@@ -168,20 +248,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 
                                   ),
-                                  SizedBox(height: 10,),
+                                  const SizedBox(height: 10,),
                                   IntlPhoneField(
                                     showCountryFlag: false,
                                     dropdownIcon: Icon(Icons.arrow_drop_down, color: darkTheme? Colors.amber.shade400: Colors.grey,),
                                     decoration: InputDecoration(
                                         hintText: "Phone Number",
-                                        hintStyle: TextStyle(
+                                        hintStyle: const TextStyle(
                                             color: Colors.grey
                                         ),
                                         filled: true,
                                         fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
                                         border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(40),
-                                            borderSide: BorderSide(
+                                            borderSide: const BorderSide(
                                                 width: 0,
                                                 style: BorderStyle.none
                                             )
@@ -193,14 +273,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       phoneTextEditingContentController.text = text.completeNumber;
                                     }),
                                   ),
-                                  SizedBox(height: 10,),
+                                  const SizedBox(height: 10,),
                                   TextFormField(
                                       inputFormatters:[
                                         LengthLimitingTextInputFormatter(100)
                                       ],
                                       decoration: InputDecoration(
                                           hintText: "Address",
-                                          hintStyle: TextStyle(
+                                          hintStyle: const TextStyle(
                                               color: Colors.grey
                                           ),
                                           filled: true,
@@ -294,14 +374,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ],
                                       decoration: InputDecoration(
                                           hintText: "Confirm Password",
-                                          hintStyle: TextStyle(
+                                          hintStyle: const TextStyle(
                                               color: Colors.grey
                                           ),
                                           filled: true,
                                           fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
                                           border: OutlineInputBorder(
                                               borderRadius: BorderRadius.circular(40),
-                                              borderSide: BorderSide(
+                                              borderSide: const BorderSide(
                                                   width: 0,
                                                   style: BorderStyle.none
                                               )
@@ -371,14 +451,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text(
+                                      const Text(
                                         "Tienes cuenta",
                                         style: TextStyle(
                                             color: Colors.grey,
                                             fontSize: 15
                                         ),
                                       ),
-                                      SizedBox(width: 5,),
+                                       const SizedBox(width: 5,),
                                       GestureDetector(
                                         onTap: (){
                                           Navigator.push(context, MaterialPageRoute(builder: (c)=>LoginScreen()));

@@ -4,10 +4,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoder2/geocoder2.dart';
 import 'package:location/location.dart' as loc;
 import 'package:flutter/material.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,17 +13,16 @@ import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/Assistants/geofire_assistant.dart';
 import 'package:ven_app/Helpers/custom_functions.dart';
 import 'package:ven_app/global/global.dart';
-import 'package:ven_app/global/map_key.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
 import 'package:ven_app/models/active_nearby_available_drivers.dart';
 import 'package:ven_app/screens/drawer_screen.dart';
-import 'package:ven_app/screens/precise_pickup_location.dart';
+import 'package:ven_app/screens/precise_dropoff_location_screen.dart';
+import 'package:ven_app/screens/precise_pickup_location_screen.dart';
 import 'package:ven_app/screens/rate_driver_screen.dart';
-import 'package:ven_app/screens/search_places_screen.dart';
 import 'package:ven_app/splashScreen/splash_screen.dart';
 import 'package:ven_app/widgets/card_vehicle_type.dart';
 import 'package:ven_app/widgets/progress_dialog.dart';
-import '../models/directions.dart';
+import '../Assistants/black_theme_google_map.dart';
 import '../widgets/pay_fare_amount_dialog.dart';
 
 Future<void> _makePhoneCall(String url) async {
@@ -660,34 +657,15 @@ class _MainScreenState extends State<MainScreen> {
                   _controllerGoogleMap.complete(controller);
                   newGoogleMapController = controller;
 
-                  setState(() {
-
-                  });
+                  if(darkTheme == true){
+                    setState(() {
+                      blackThemeGoogleMapI(newGoogleMapController);
+                    });
+                  }
 
                   locateUserPosition();
                 },
-              /*
-                onCameraMove:(CameraPosition? position){
-                  if(pickLocation != position!.target){
-                    setState(() {
-                      pickLocation = position.target;
-                    });
-                  }
-                },
-                onCameraIdle: () {
-                  getAddressFromLatlng();
-                },
-               */
             ),
-            /*
-            Align(
-              alignment: Alignment.center,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 35.0),
-                child: Image.asset('images/pick.png', height: 45, width: 45,),
-              ),
-            ),
-             */
             //custom hamburger button for drawer
             Positioned(
                 top: 50,
@@ -772,10 +750,10 @@ class _MainScreenState extends State<MainScreen> {
                                   child: GestureDetector(
                                     onTap: () async {
                                       //go to search places screen
-                                      var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen()));
+//                                      var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen()));
+                                      var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> PreciseDropOffLocationScreen()));
 
                                       if(responseFromSearch == 'obtainedDropoff'){
-                                        print("llegamos aca");
                                         setState(() {
                                           openNavigatorDrawer = false;
                                         });
@@ -817,7 +795,7 @@ class _MainScreenState extends State<MainScreen> {
                             children: [
                               ElevatedButton(
                                   onPressed: (){
-                                    Navigator.push(context, MaterialPageRoute(builder: (c)=> PrecisePickUpScreen()));
+                                    Navigator.push(context, MaterialPageRoute(builder: (c)=> PrecisePickUpLocationScreen()));
                                   },
                                   child: Text(
                                     "Cambiar dirección \n de recogida",
@@ -941,7 +919,7 @@ class _MainScreenState extends State<MainScreen> {
 
                         SizedBox(height: 20,),
 
-                        Text("SUGGESTED RIDES", style: TextStyle(fontWeight: FontWeight.bold),),
+                        Text("VIAJES SUGERIDOS", style: TextStyle(fontWeight: FontWeight.bold),),
 
                         SizedBox(height: 20,),
 
@@ -963,7 +941,7 @@ class _MainScreenState extends State<MainScreen> {
                                 });
                               },
                             ),
-                            SizedBox(width: 5,),
+                            const SizedBox(width: 5,),
                             CardVehicleType(
                               darkTheme: darkTheme,
                               assetImageString: "images/CNG.png",
@@ -979,7 +957,7 @@ class _MainScreenState extends State<MainScreen> {
                                 });
                               },
                             ),
-                            SizedBox(width: 5,),
+                            const SizedBox(width: 5,),
                             CardVehicleType(
                               darkTheme: darkTheme,
                               assetImageString: "images/Bike.png",
@@ -987,7 +965,7 @@ class _MainScreenState extends State<MainScreen> {
                               selectedVehicleType: selectedVehicleType,
                               vehicleType: "Bike",
                               vehicleTypeString: "Moto",
-                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1)}'
+                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}'
                                   : "",
                               onTap: (){
                                 setState(() {
@@ -1005,12 +983,11 @@ class _MainScreenState extends State<MainScreen> {
                             if(selectedVehicleType != ""){
                               saveRideRequestInformation(selectedVehicleType);
                             } else {
-                              Fluttertoast.showToast(msg: "please select a vehicle from \n suggested rides");
+                              Fluttertoast.showToast(msg: "por favor selecciona un vehiculo \n de los viajes sugeridos");
                             }
-
                           },
                           child: Container(
-                            padding: EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: darkTheme ? Colors.amber.shade400:Colors.blue,
                               borderRadius: BorderRadius.circular(10)
@@ -1027,9 +1004,6 @@ class _MainScreenState extends State<MainScreen> {
                             ),
                           ),
                         ))
-
-
-
                       ],
                     )
                   ),

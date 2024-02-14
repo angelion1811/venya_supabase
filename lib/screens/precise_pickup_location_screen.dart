@@ -14,14 +14,14 @@ import '../global/map_key.dart';
 import '../infoHandler/app_info.dart';
 import '../models/directions.dart';
 
-class PrecisePickUpScreen extends StatefulWidget {
-  const PrecisePickUpScreen({Key? key}) : super(key: key);
+class PrecisePickUpLocationScreen extends StatefulWidget {
+  const PrecisePickUpLocationScreen({Key? key}) : super(key: key);
 
   @override
-  State<PrecisePickUpScreen> createState() => _PrecisePickUpScreenState();
+  State<PrecisePickUpLocationScreen> createState() => _PrecisePickUpLocationScreenState();
 }
 
-class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
+class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScreen> {
 
   LatLng? pickLocation;
   loc.Location location = loc.Location();
@@ -50,6 +50,7 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
     newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
     String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
+    return;
   }
 
   getAddressFromLatlng() async {
@@ -98,9 +99,14 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
               },
               onCameraMove:(CameraPosition? position){
                 if(pickLocation != position!.target){
-                  setState(() {
-                    pickLocation = position.target;
-                  });
+                  try{
+                    setState(() {
+                      pickLocation = position.target;
+                    });
+                  } catch(e) {
+
+                  }
+
                 }
               },
               onCameraIdle: () {
@@ -111,7 +117,7 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
               alignment: Alignment.center,
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 35.0),
-                child: Image.asset('images/pick.png', height: 45, width: 45,),
+                child: Image.asset('images/pick_old_3.png', height: 45, width: 45,),
               ),
             ),
 
@@ -130,16 +136,18 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
                     overflow: TextOverflow.visible,
                     softWrap: true,
                   ),
-                )),
-                Positioned(
+                )
+            ),
+            Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
                     child: Padding(
                       padding: EdgeInsets.all(12),
                       child: ElevatedButton(
-                        onPressed: () {
-                          //locateUserPosition();
+                        onPressed: () async {
+                          await getAddressFromLatlng();
+                          await locateUserPosition();
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
@@ -149,7 +157,7 @@ class _PrecisePickUpScreenState extends State<PrecisePickUpScreen> {
                             fontSize: 16,
                           )
                         ),
-                        child: Text("Set current Location"),
+                        child: Text("Asignar localización de origen"),
                       ),
                     ),
 
