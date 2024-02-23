@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -9,6 +10,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
+import 'package:ven_app/screens/register_documents_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -28,6 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _passwordVisible = false;
   XFile? imageFile;
+  String urlOfUploadedImage = "";
 
   //declare global key
   final _formKey = GlobalKey<FormState>();
@@ -47,14 +50,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               'email': emailTextEditingContentController.text.trim(),
               'address': addressTextEditingContentController.text.trim(),
               'phone': phoneTextEditingContentController.text.trim(),
+              "blocked": false,
+              "verified": false,
             };
-
             DatabaseReference userRef = FirebaseDatabase.instance.ref().child('users');
             userRef.child(currentUser!.uid).set(userMap);
-
           }
           await Fluttertoast.showToast(msg: "usuario registrado con exito");
-          Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (c)=>RegisterDocumentsScreen()));
       }).catchError((errorMessage){
         Fluttertoast.showToast(msg: "Error ocurrido \n $errorMessage");
       });
@@ -103,63 +106,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           SizedBox( height: 10,),
 
 
-          GestureDetector(
-            onTap: (){
-              chooseImageFromGallery();
-            },
-            child:
-            Column(
-              children: [
-                imageFile == null?
-                 Container(
-                  child: CircleAvatar(
-                    radius: 70,
-                    backgroundImage: AssetImage("images/avatar.png"),
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.transparent,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(86),
-                      child: Image.asset(
-                        "images/avatar.png",
-                        fit: BoxFit.cover,
-                        width: 140, // Set the width to the desired size
-                        height: 140, // Set the height to the desired size
-                      ),
-                    ),
-                  ),
-                )
-                  :
-                    Container(
-                      width: 140,
-                        height: 140,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey,
-                        image: DecorationImage(
-                          fit: BoxFit.fitHeight,
-                          image:FileImage(
-                            File(
-                              imageFile!.path
-                            )
-                          )
-                        )
-                      ),
-                    ),
-                const SizedBox(height: 10,),
-
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Elige una foto de perfil",
-                      style: TextStyle(
-                          color: Colors.grey
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
           Padding(padding: const EdgeInsets.fromLTRB(15, 20, 15, 50),
               child:Column(
                   mainAxisAlignment: MainAxisAlignment.center,

@@ -201,8 +201,8 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   createActiveNearByDriverIconMarker(){
-    log("createActiveNearByDriverIconMarker");
-    log(activeNearbyIcon.toString());
+    print("createActiveNearByDriverIconMarker");
+    print(activeNearbyIcon.toString());
     if(activeNearbyIcon == null){
       ImageConfiguration imageConfiguration = createLocalImageConfiguration(context, size: Size(1,1));
       BitmapDescriptor.fromAssetImage(imageConfiguration, "images/car_gpsmap.png").then((value){

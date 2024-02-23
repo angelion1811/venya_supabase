@@ -7,6 +7,8 @@ class UserModel {
   String? phone;
   String? email;
   String? address;
+  dynamic? documents;
+  bool? blocked;
 
   UserModel({
     this.id,
@@ -14,6 +16,7 @@ class UserModel {
     this.phone,
     this.email,
     this.address,
+    this.documents,
   });
 
   UserModel.fromSnapshot(DataSnapshot snapshot){
@@ -22,5 +25,7 @@ class UserModel {
     phone = (snapshot.value as dynamic)["phone"];
     email = (snapshot.value as dynamic)["email"];
     address = (snapshot.value as dynamic)["address"];
+    documents = (snapshot.value as dynamic)["documents"];
+    blocked = (snapshot.value as dynamic)["blocked"];
   }
 }

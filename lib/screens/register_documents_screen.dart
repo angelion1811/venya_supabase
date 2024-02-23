@@ -8,28 +8,25 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:ven_app/global/global.dart';
+import 'package:ven_app/screens/forgot_password_screen.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
+import 'package:ven_app/widgets/file_selector.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+import '../splashScreen/splash_screen.dart';
+
+class RegisterDocumentsScreen extends StatefulWidget {
+  const RegisterDocumentsScreen({Key? key}) : super(key: key);
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterDocumentsScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterDocumentsScreen> {
 
-  final nameTextEditingContentController = TextEditingController();
-  final emailTextEditingContentController = TextEditingController();
-  final phoneTextEditingContentController = TextEditingController();
-  final addressTextEditingContentController = TextEditingController();
-  final passwordTextEditingContentController = TextEditingController();
-  final confirmPasswordTextEditingContentController = TextEditingController();
+  XFile? imageSelfie, imageDocument, imageSelfieWithDocument;
 
-  bool _passwordVisible = false;
-  XFile? imageFile;
-  String urlOfUploadedImage = "";
+  String urlOfUploadedImageSelfie = "", urlOfUploadedImageDocument = "", urlOfUploadedImageSelfieWithDocument = "";
 
   //declare global key
   final _formKey = GlobalKey<FormState>();
@@ -37,31 +34,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _submit() async {
     //validate field of form;
     if(_formKey.currentState!.validate()){
-      await firebaseAuth.createUserWithEmailAndPassword(
-          email: emailTextEditingContentController.text.trim(),
-          password: passwordTextEditingContentController.text.trim()
-      ).then((auth)  async {
-          currentUser = auth.user;
-          if(currentUser != null){
-            Map userMap = {
-              'id': currentUser!.uid,
-              'name': nameTextEditingContentController.text.trim(),
-              'email': emailTextEditingContentController.text.trim(),
-              'address': addressTextEditingContentController.text.trim(),
-              'phone': phoneTextEditingContentController.text.trim(),
-              "blocked": false,
-              "url_avatar": urlOfUploadedImage
-            };
-
-            DatabaseReference userRef = FirebaseDatabase.instance.ref().child('users');
-            userRef.child(currentUser!.uid).set(userMap);
-
-          }
-          await Fluttertoast.showToast(msg: "usuario registrado con exito");
-          Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
-      }).catchError((errorMessage){
-        Fluttertoast.showToast(msg: "Error ocurrido \n $errorMessage");
-      });
+      Map documents = {
+        "imageSelfie": urlOfUploadedImageSelfie,
+        "imageDocument": urlOfUploadedImageDocument,
+        "imageSelfieWithDocument": urlOfUploadedImageSelfieWithDocument,
+      };
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child('users');
+      userRef.child(currentUser!.uid).child("documents").set(documents);
+      await Fluttertoast.showToast(msg: "Documentos de Indetificacion guardados, Felicitaciones");
+      Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
     } else {
       Fluttertoast.showToast(msg: "No todos los campos esta llenos");
     }
@@ -69,43 +50,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
 
-  chooseImageFromGallery() async {
+  chooseImageFromGallery(int typeOfFile) async {
     final ImagePicker picker = ImagePicker();
 // Pick an image.
-    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.camera);
     //final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if(pickedFile != null){
-      setState(() {
-        imageFile = pickedFile;
-      });
+      switch(typeOfFile){
+        case 1:
+          setState(() =>imageSelfie = pickedFile);
+          break;
+        case 2:
+          setState(() =>imageDocument = pickedFile);
+          break;
+        case 3:
+          setState(() =>imageSelfieWithDocument = pickedFile);
+          break;
+      }
     }
   }
 
-  uploadImageToStorage() async {
-    if(imageFile == null) {
-      Fluttertoast.showToast(msg: "Debe seleccionar una imagen");
+  Future<String> uploadImageToStorage(XFile? xFile) async {
+    String imageIDName = DateTime.now().millisecondsSinceEpoch.toString();
+    Reference referenceImage = FirebaseStorage.instance.ref().child("Images").child(imageIDName);
+    UploadTask uploadTask = referenceImage.putFile(File(xFile!.path));
+    TaskSnapshot snapshot = await uploadTask;
+    return snapshot.ref.getDownloadURL();
+  }
+
+  uploadImagesToStorage() async {
+    if(imageSelfie == null) {
+      Fluttertoast.showToast(msg: "Por favor, tomarse una foto");
       return;
     }
 
-    String imageIDName = DateTime.now().millisecondsSinceEpoch.toString();
-    Reference referenceImage = FirebaseStorage.instance.ref().child("Images").child(imageIDName);
+    if(imageDocument == null) {
+      Fluttertoast.showToast(msg: "Por favor, tomar una foto al documento de identidad");
+      return;
+    }
 
-    UploadTask uploadTask = referenceImage.putFile(File(imageFile!.path));
-    TaskSnapshot snapshot = await uploadTask;
-    urlOfUploadedImage  = await snapshot.ref.getDownloadURL();
+    if(imageSelfieWithDocument == null) {
+      Fluttertoast.showToast(msg: "Por favor, tomarse una foto con el documento de indetidad");
+      return;
+    }
+
+    urlOfUploadedImageSelfie  = await uploadImageToStorage(imageSelfie);
+    urlOfUploadedImageDocument =  await uploadImageToStorage(imageDocument);
+    urlOfUploadedImageSelfieWithDocument = await uploadImageToStorage(imageSelfieWithDocument);
 
     setState((){
-      urlOfUploadedImage;
+      urlOfUploadedImageSelfie;
+      urlOfUploadedImageDocument;
+      urlOfUploadedImageSelfieWithDocument;
     });
 
-    print("urlOfUploadedImage");
-    print(urlOfUploadedImage);
+    print("urlOfUploadedImageSelfie");
+    print(urlOfUploadedImageSelfie);
+
+    print("urlOfUploadedImageDocument");
+    print(urlOfUploadedImageDocument);
+
+    print("urlOfUploadedImageSelfieWithDocument");
+    print(urlOfUploadedImageSelfieWithDocument);
 
     _submit();
-
-
-
   }
 
 
@@ -124,72 +133,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Image.asset(darkTheme? 'images/VenLogo_dark.jpg':'images/VenLogo.jpg' ),
           SizedBox(height: 10,),
 
-          Center(child:Text("Registro",
+          Center(child:Text("Registro De Documentos",
             style: TextStyle(
               color: darkTheme? Colors.amber.shade400: Colors.blue,
               fontWeight: FontWeight.bold,
               fontSize: 25,
             ) ,),),
           SizedBox( height: 10,),
-
-
-          GestureDetector(
+          FileSelector(
+            xFile: imageSelfie,
             onTap: (){
-              chooseImageFromGallery();
+              chooseImageFromGallery(1);
             },
-            child:
-            Column(
-              children: [
-                imageFile == null?
-                 Container(
-                  child: CircleAvatar(
-                    radius: 70,
-                    backgroundImage: AssetImage("images/avatar.png"),
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.transparent,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(86),
-                      child: Image.asset(
-                        "images/avatar.png",
-                        fit: BoxFit.cover,
-                        width: 140, // Set the width to the desired size
-                        height: 140, // Set the height to the desired size
-                      ),
-                    ),
-                  ),
-                )
-                  :
-                    Container(
-                      width: 140,
-                        height: 140,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey,
-                        image: DecorationImage(
-                          fit: BoxFit.fitHeight,
-                          image:FileImage(
-                            File(
-                              imageFile!.path
-                            )
-                          )
-                        )
-                      ),
-                    ),
-                const SizedBox(height: 10,),
-
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Elige una foto de perfil",
-                      style: TextStyle(
-                          color: Colors.grey
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            label: "Elige una foto de perfil"
           ),
+          SizedBox( height: 10,),
+          FileSelector(
+              xFile: imageDocument,
+              onTap: (){
+                chooseImageFromGallery(2);
+              },
+              label: "Elige una foto del documento de identidad"
+          ),
+          SizedBox( height: 10,),
+          FileSelector(
+              xFile: imageSelfieWithDocument,
+              onTap: (){
+                chooseImageFromGallery(3);
+              },
+              label: "Toma una foto de perfil \n con el documento de identidad"
+          ),
+          SizedBox( height: 10,),
           Padding(padding: const EdgeInsets.fromLTRB(15, 20, 15, 50),
               child:Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -200,255 +174,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  TextFormField(
-                                      inputFormatters:[
-                                        LengthLimitingTextInputFormatter(50)
-                                      ],
-                                      decoration: InputDecoration(
-                                        hintText: "Name",
-                                        hintStyle: const TextStyle(
-                                          color: Colors.grey
-                                        ),
-                                        filled: true,
-                                        fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(40),
-                                          borderSide: const BorderSide(
-                                            width: 0,
-                                            style: BorderStyle.none
-                                          )
-                                        ),
-                                        prefixIcon: Icon(Icons.person, color: darkTheme? Colors.amber.shade400: Colors.grey,)
-                                      ),
-                                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                                      validator: (text){
-                                        if(text==null||text.isEmpty){
-                                          return "Name can't be empty";
-                                        }
-                                        if(text.length < 2){
-                                          return "Please enter a valid name";
-                                        }
-                                        if(text.length > 50){
-                                          return "Name can't be more than 50";
-                                        }
-                                      },
-                                      onChanged: (text)=>setState(() {
-                                        nameTextEditingContentController.text = text;
-                                      })
-                                  ),
-                                  const SizedBox(height: 10,),
-                                  TextFormField(
-                                    inputFormatters:[
-                                      LengthLimitingTextInputFormatter(100)
-                                    ],
-                                    decoration: InputDecoration(
-                                        hintText: "Email",
-                                        hintStyle: const TextStyle(
-                                            color: Colors.grey
-                                        ),
-                                        filled: true,
-                                        fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
-                                        border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(40),
-                                            borderSide: const BorderSide(
-                                                width: 0,
-                                                style: BorderStyle.none
-                                            )
-                                        ),
-                                        prefixIcon: Icon(Icons.person, color: darkTheme? Colors.amber.shade400: Colors.grey,)
-                                    ),
-                                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                                    validator: (text){
-                                      if(text==null||text.isEmpty){
-                                        return "email can't be empty";
-                                      }
-                                      if(text.length < 2){
-                                        return "Please enter a valid name";
-                                      }
-                                      if(EmailValidator.validate(text)==true) {
-                                        return null;
-                                      }
-                                      if(text.length > 50){
-                                        return "Email can't be more than 50";
-                                      }
-                                    },
-                                    onChanged: (text)=>setState(() {
-                                      emailTextEditingContentController.text = text;
-                                    })
-
-
-                                  ),
-                                  const SizedBox(height: 10,),
-                                  IntlPhoneField(
-                                    showCountryFlag: false,
-                                    dropdownIcon: Icon(Icons.arrow_drop_down, color: darkTheme? Colors.amber.shade400: Colors.grey,),
-                                    decoration: InputDecoration(
-                                        hintText: "Phone Number",
-                                        hintStyle: const TextStyle(
-                                            color: Colors.grey
-                                        ),
-                                        filled: true,
-                                        fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
-                                        border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(40),
-                                            borderSide: const BorderSide(
-                                                width: 0,
-                                                style: BorderStyle.none
-                                            )
-                                        ),
-                                        //prefixIcon: Icon(Icons.person, color: darkTheme? Colors.amber.shade400: Colors.grey,)
-                                    ),
-                                    initialCountryCode: 'VE',
-                                    onChanged: (text) => setState(() {
-                                      phoneTextEditingContentController.text = text.completeNumber;
-                                    }),
-                                  ),
-                                  const SizedBox(height: 10,),
-                                  TextFormField(
-                                      inputFormatters:[
-                                        LengthLimitingTextInputFormatter(100)
-                                      ],
-                                      decoration: InputDecoration(
-                                          hintText: "Address",
-                                          hintStyle: const TextStyle(
-                                              color: Colors.grey
-                                          ),
-                                          filled: true,
-                                          fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
-                                          border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(40),
-                                              borderSide: BorderSide(
-                                                  width: 0,
-                                                  style: BorderStyle.none
-                                              )
-                                          ),
-                                          prefixIcon: Icon(Icons.person, color: darkTheme? Colors.amber.shade400: Colors.grey,)
-                                      ),
-                                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                                      validator: (text){
-                                        if(text==null||text.isEmpty){
-                                          return "Address can't be empty";
-                                        }
-                                        if(text.length < 5){
-                                          return "Please enter a valid address";
-                                        }
-                                        if(EmailValidator.validate(text)==true) {
-                                          return null;
-                                        }
-                                        if(text.length > 100){
-                                          return "Address can't be more than 50";
-                                        }
-                                      },
-                                      onChanged: (text)=>setState(() {
-                                        addressTextEditingContentController.text = text;
-                                      })
-                                  ),
-                                  SizedBox(height: 10,),
-                                  TextFormField(
-                                      obscureText: !_passwordVisible,
-                                      inputFormatters:[
-                                        LengthLimitingTextInputFormatter(100)
-                                      ],
-                                      decoration: InputDecoration(
-                                          hintText: "Password",
-                                          hintStyle: TextStyle(
-                                              color: Colors.grey
-                                          ),
-                                          filled: true,
-                                          fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
-                                          border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(40),
-                                              borderSide: BorderSide(
-                                                  width: 0,
-                                                  style: BorderStyle.none
-                                              )
-                                          ),
-                                          prefixIcon: Icon(Icons.person, color: darkTheme? Colors.amber.shade400: Colors.grey,),
-                                          suffixIcon: IconButton(
-                                            icon:Icon(
-                                              _passwordVisible? Icons.visibility: Icons.visibility_off,
-                                              color: darkTheme? Colors.amber.shade400: Colors.grey,
-                                            ),
-                                            onPressed: (){
-                                              setState(() {
-                                                _passwordVisible = !_passwordVisible;
-                                              });
-                                            },
-                                          )
-                                      ),
-                                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                                      validator: (text){
-                                        if(text==null||text.isEmpty){
-                                          return "Password can't be empty";
-                                        }
-                                        if(text.length < 6){
-                                          return "Please enter a valid password";
-                                        }
-
-                                        if(text.length > 50){
-                                          return "Password can't be more than 50";
-                                        }
-                                        return null;
-                                      },
-                                      onChanged: (text)=>setState(() {
-                                        passwordTextEditingContentController.text = text;
-                                      })
-
-
-                                  ),
-                                  SizedBox(height: 10,),
-                                  TextFormField(
-                                      obscureText: !_passwordVisible,
-                                      inputFormatters:[
-                                        LengthLimitingTextInputFormatter(100)
-                                      ],
-                                      decoration: InputDecoration(
-                                          hintText: "Confirm Password",
-                                          hintStyle: const TextStyle(
-                                              color: Colors.grey
-                                          ),
-                                          filled: true,
-                                          fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
-                                          border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(40),
-                                              borderSide: const BorderSide(
-                                                  width: 0,
-                                                  style: BorderStyle.none
-                                              )
-                                          ),
-                                          prefixIcon: Icon(Icons.person, color: darkTheme? Colors.amber.shade400: Colors.grey,),
-                                          suffixIcon: IconButton(
-                                            icon:Icon(
-                                              _passwordVisible? Icons.visibility: Icons.visibility_off,
-                                              color: darkTheme? Colors.amber.shade400: Colors.grey,
-                                            ),
-                                            onPressed: (){
-                                              setState(() {
-                                                _passwordVisible = !_passwordVisible;
-                                              });
-                                            },
-                                          )
-                                      ),
-                                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                                      validator: (text){
-                                        if(text==null||text.isEmpty){
-                                          return "Confirm Password can't be empty";
-                                        }
-                                        if(text.length < 6){
-                                          return "Please enter a valid password";
-                                        }
-
-                                        if(text.length > 50){
-                                          return "Confirm Password can't be more than 50";
-                                        }
-                                        return null;
-                                      },
-                                      onChanged: (text)=>setState(() {
-                                        confirmPasswordTextEditingContentController.text = text;
-                                      })
-
-
-                                  ),
                                   SizedBox(height: 20,),
                                   ElevatedButton(
                                       style: ElevatedButton.styleFrom(
@@ -459,49 +184,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           minimumSize: Size(double.infinity, 50)
                                       ),
                                       onPressed: (){
-                                        //_submit();
-                                        uploadImageToStorage();
+                                        uploadImagesToStorage();
                                       },
-                                      child: Text('Registrarse',
+                                      child: Text('Registrar Documentos',
                                         style: TextStyle(fontSize: 20),
                                       ),
 
                                                                         ),
                                   SizedBox(height: 20,),
-                                  GestureDetector(
-                                    onTap: (){
-                                      Navigator.push(context, MaterialPageRoute(builder: (c)=>RegisterScreen()));
-                                    },
-                                    child: Text('¿Has olvidado tu contraseña?',
-                                      style: TextStyle(
-                                          color: darkTheme? Colors.amber.shade400: Colors.blue
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 20,),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Text(
-                                        "Tienes cuenta",
-                                        style: TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 15
-                                        ),
-                                      ),
-                                       const SizedBox(width: 5,),
-                                      GestureDetector(
-                                        onTap: (){
-                                          Navigator.push(context, MaterialPageRoute(builder: (c)=>LoginScreen()));
-                                        },
-                                        child: Text('Inicia Sesion', style: TextStyle(
-                                          fontSize: 15,
-                                          color: darkTheme ? Colors.amber.shade400: Colors.blue
-                                        ),),
-                                      )
-
-                                    ],
-                                  )
                                 ],
                             ),
                     ),

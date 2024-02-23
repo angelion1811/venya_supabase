@@ -27,9 +27,12 @@ class AssistantMethods {
 
     userRef.once().then((snap){
       if(snap.snapshot.value != null){
+        print("hay datos de usuario");
         userModelCurrentInfo = UserModel.fromSnapshot(snap.snapshot);
+        print(userModelCurrentInfo);
       }
     });
+    return;
   }
 
   static Future<String> searchAddressForGeographicCoordinates( double clatitude, double clongitude , context) async {
@@ -61,7 +64,7 @@ class AssistantMethods {
     var responseDirectionApi = await RequestAssistant.receiveRequest(
         urlOriginToDestinationDirectionsDetails);
     /*
-    if (responseDirectionApi == "Error Ocurred. Failed. No Response.") {
+    if (responseDirectionApis == "Error Ocurred. Failed. No Response.") {
       return null;
     }
      */
