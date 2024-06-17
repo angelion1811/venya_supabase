@@ -24,3 +24,17 @@ String displayHistoryLocationString(dynamic locationValue){
 
 }
 
+
+String? defaultValidator(String? text, {double minLength = 2, maxLength=50}){
+  if(text==null||text.isEmpty){
+    return "Esta campo no puede estar vacío";
+  }
+  if(text.length < minLength){
+    return "Por favor, introducir un valor valido.";
+  }
+  if(text.length > maxLength){
+    return "Este campo no puede ser mayor a 50 carateres";
+  }
+  return null;
+}
+

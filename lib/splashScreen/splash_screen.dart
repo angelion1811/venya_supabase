@@ -45,6 +45,13 @@ class _SplashScreenState extends State<SplashScreen> {
           Navigator.push(context, MaterialPageRoute(builder: (c)=>LoginScreen()));
           return;
         }
+
+        if(userModelCurrentInfo!.verified == false){
+          Fluttertoast.showToast(msg: "Usuario no verificado");
+          firebaseAuth.signOut();
+          Navigator.push(context, MaterialPageRoute(builder: (c)=>LoginScreen()));
+          return;
+        }
         Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
 
       });

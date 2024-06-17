@@ -175,4 +175,27 @@ class AssistantMethods {
       });
     }
   }
+
+
+  static  Future<bool> checkIfRecordExists(String nodo, String fieldName, String fieldValue) async {
+    try {
+      print("checkIfRecordExists");
+      DatabaseReference ref = await FirebaseDatabase.instance.ref().child(nodo);
+      print("checkIfRecordExists 2");
+      Query query = ref.orderByChild(fieldName)
+          .equalTo(fieldValue)
+          .limitToFirst(1);
+      print("checkIfRecordExists 3");
+      DatabaseEvent event = await query.once();
+      print("checkIfRecordExists 4");
+      DataSnapshot snapshot = event.snapshot;
+      print("checkIfRecordExists 5");
+      return snapshot.value != null;
+    }catch(e){
+      print(e);
+      return false;
+    }
+  }
+
+    
 }
