@@ -31,14 +31,14 @@ Future<void> _makePhoneCall(String url) async {
   }
 }
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+class MainScreenOld extends StatefulWidget {
+  const MainScreenOld({Key? key}) : super(key: key);
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainScreenOld> createState() => _MainScreenOldState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenOldState extends State<MainScreenOld> {
 
   LatLng? pickLocation;
   loc.Location location = loc.Location();
@@ -380,8 +380,6 @@ class _MainScreenState extends State<MainScreen> {
 
     if(_locationPermission == LocationPermission.denied){
       _locationPermission = await Geolocator.requestPermission();
-    } else {
-      locateUserPosition();
     }
   }
 
@@ -624,11 +622,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  isRouteComplete(){
-    var originPosition = Provider.of<AppInfo>(context, listen: false).userPickUpLocation;
-    var destinationPosition = Provider.of<AppInfo>(context, listen: false).userDropOffLocation;
-    return ((originPosition != null)&&( destinationPosition != null));
-  }
+
 
   @override
   void initState(){
@@ -720,24 +714,9 @@ class _MainScreenState extends State<MainScreen> {
                             ),
                             child: Column(
                               children: [
-
                                 Padding(
                                     padding: EdgeInsets.all(5),
-                                    child: GestureDetector(
-                                      onTap: () async {
-                                        //go to search places screen
-                                        var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> PrecisePickUpLocationScreen()));
-
-                                        if(responseFromSearch == 'obtainedDropoff'){
-                                          setState(() {
-                                            openNavigatorDrawer = false;
-                                          });
-                                        }
-                                        if(isRouteComplete()){
-                                          await drawPolyLineFromOriginToDestination(darkTheme);
-                                        }
-                                      },
-                                      child: Row(
+                                    child: Row(
                                       children: [
                                         Icon(Icons.location_on_outlined, color: darkTheme? Colors.amber.shade400: Colors.blue ),
                                         SizedBox(width: 10,),
@@ -758,7 +737,6 @@ class _MainScreenState extends State<MainScreen> {
                                           ],
                                         )
                                       ],
-                                    ),
                                     ),
                                 ),
                                 SizedBox(height: 5,),
@@ -781,9 +759,8 @@ class _MainScreenState extends State<MainScreen> {
                                           openNavigatorDrawer = false;
                                         });
                                       }
-                                      if(isRouteComplete()){
-                                        await drawPolyLineFromOriginToDestination(darkTheme);
-                                      }
+
+                                      await drawPolyLineFromOriginToDestination(darkTheme);
                                     },
                                     child: Row(
                                       children: [
@@ -817,14 +794,35 @@ class _MainScreenState extends State<MainScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-
+                              ElevatedButton(
+                                  onPressed: (){
+                                    Navigator.push(context, MaterialPageRoute(builder: (c)=> PrecisePickUpLocationScreen()));
+                                  },
+                                  child: Text(
+                                    "Cambiar dirección \n de recogida",
+                                    style: TextStyle(
+                                      color: darkTheme ? Colors.black: Colors.white,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue,
+                                    textStyle: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    )
+                                  ),
+                              ),
+                              SizedBox(width: 10,),
                               ElevatedButton(
                                 onPressed: (){
-                                    if(isRouteComplete()){
+                                    if(Provider.of<AppInfo>(context, listen: false).userDropOffLocation != null){
                                       showSuggestedRidesContainer();
-                                    }else{
+                                    } else {
                                       Fluttertoast.showToast(msg: "Por favor seleccionar \n ubicación de destino");
                                     }
+                                    showSuggestedRidesContainer();
+
                                 },
                                 child: Text(
                                   "Mostrar Tarifas",
@@ -833,10 +831,7 @@ class _MainScreenState extends State<MainScreen> {
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: darkTheme?
-                                                        isRouteComplete()? Colors.amber.shade400:Colors.amber.shade100
-                                                      :
-                                                        isRouteComplete()? Colors.blue:Colors.blue.shade100,
+                                    backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue,
                                     textStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -852,7 +847,6 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ),
             ),
-            //
             Positioned(
                 left: 0,
                 right: 0,

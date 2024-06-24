@@ -111,7 +111,7 @@ class _RateDriverScreenState extends State<RateDriverScreen> {
                   });
                 },
                 style: ElevatedButton.styleFrom(
-                  primary: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                  backgroundColor: darkTheme ? Colors.amber.shade400 : Colors.blue,
                 ),
                 child: Text("Enviar",
                   style: TextStyle(

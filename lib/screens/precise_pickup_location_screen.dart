@@ -10,9 +10,13 @@ import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/Helpers/custom_functions.dart';
 
+import '../Assistants/request_assistant.dart';
 import '../global/map_key.dart';
 import '../infoHandler/app_info.dart';
 import '../models/directions.dart';
+import '../models/predicted_places.dart';
+import '../widgets/place_prediction_tile.dart';
+import 'search_places_screen.dart';
 
 class PrecisePickUpLocationScreen extends StatefulWidget {
   const PrecisePickUpLocationScreen({Key? key}) : super(key: key);
@@ -25,7 +29,7 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
 
   LatLng? pickLocation;
   loc.Location location = loc.Location();
-  String? _address;
+  List<PredictedPlaces> placesPredictedList = [];
 
   final Completer<GoogleMapController> _controllerGoogleMap = Completer();
   GoogleMapController? newGoogleMapController;
@@ -70,6 +74,17 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
     }
   }
 
+  locatePickUpPosition() async {
+    var originPosition = Provider.of<AppInfo>(context, listen: false).userPickUpLocation;
+
+    LatLng latLngPosition = LatLng(originPosition!.locationLatitude!, originPosition!.locationLongitude!);
+
+    CameraPosition cameraPosition = CameraPosition(target: latLngPosition, zoom: 15);
+
+    newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+
+    return;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,27 +131,113 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
             Align(
               alignment: Alignment.center,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 35.0),
+                padding: const EdgeInsets.only(top: 1),
                 child: Image.asset('images/pick_old_3.png', height: 45, width: 45,),
               ),
             ),
-
+            //
             Positioned(
-                top: 40,
-                right: 20,
-                left: 20,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    color: Colors.white,
-                  ),
-                  padding: EdgeInsets.all(20),
-                  child: Text(
-                    displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
-                    overflow: TextOverflow.visible,
-                    softWrap: true,
-                  ),
-                )
+              top: 0,
+              left: 20,
+              right: 20,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(5, 50, 5, 5),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                            color: darkTheme ? Colors.black : Colors.white,
+                            borderRadius: BorderRadius.circular(10)
+                        ),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.all(5),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  ElevatedButton(
+                                      onPressed: () async {
+                                        var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen(place: 'origin',)));
+                                        if(responseFromSearch == 'obtainedPickup'){
+                                          await locatePickUpPosition();
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue,
+                                          textStyle: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          )
+                                      ),
+                                      child: Row(
+                                    children:[
+                                      Icon(Icons.search, color: darkTheme ? Colors.black: Colors.white ),
+                                      SizedBox(width: 10,),
+                                      Text("Buscar",
+                                        style: TextStyle(
+                                          color: darkTheme ? Colors.black: Colors.white,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ])
+                              ),]
+                              ),
+                            ),
+                            SizedBox(height: 10,),
+                            Container(
+                              decoration: BoxDecoration(
+                                  color: darkTheme? Colors.grey.shade900 : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(10)
+                              ),
+                              child: Column(
+                                children: [
+                                  SizedBox(height: 5,),
+                                  Padding(
+                                    padding: EdgeInsets.all(5),
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        //go to search places screen
+                                        var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> PrecisePickUpLocationScreen()));
+
+
+                                      },
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.location_on_outlined, color: darkTheme? Colors.amber.shade400: Colors.blue ),
+                                          SizedBox(width: 10,),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text("Desde",
+                                                  style: TextStyle(
+                                                      color: darkTheme? Colors.amber.shade400: Colors.blue,
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold
+                                                  )
+                                              ),
+                                              Text(
+                                                displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
+                                                style: TextStyle(color: Colors.grey, fontSize: 14),
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          ],
+                        )
+                    )
+                  ],
+                ),
+              ),
             ),
             Positioned(
                     bottom: 0,
@@ -151,13 +252,20 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
-                          primary: darkTheme? Colors.amber.shade400: Colors.blue,
+                          backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue,
                           textStyle: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           )
                         ),
-                        child: Text("Asignar localización de origen"),
+                        child: Text(
+                          "Asignar localización de origen",
+                          style: TextStyle(
+                            color: darkTheme ? Colors.black: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
                       ),
                     ),
 

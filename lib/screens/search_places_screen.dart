@@ -5,7 +5,8 @@ import 'package:ven_app/models/predicted_places.dart';
 import 'package:ven_app/widgets/place_prediction_tile.dart';
 
 class SearchPlacesScreen extends StatefulWidget {
-  const SearchPlacesScreen({Key? key}) : super(key: key);
+  String? place;
+  SearchPlacesScreen({this.place});
 
   @override
   State<SearchPlacesScreen> createState() => _SearchPlacesScreenState();
@@ -67,7 +68,7 @@ class _SearchPlacesScreenState extends State<SearchPlacesScreen> {
             child: Icon(Icons.arrow_back, color: darkTheme? Colors.black:Colors.white,),
           ),
           title: Text(
-            "Search & set dropoff location",
+            "Buscar Sitio",
             style: TextStyle(color: darkTheme ? Colors.black: Colors.white),
           ),
           elevation: 0.0,
@@ -139,6 +140,7 @@ class _SearchPlacesScreenState extends State<SearchPlacesScreen> {
                       itemBuilder: (context, index){
                         return PlacePredictionTileDesign(
                           predictedPlaces: placesPredictedList[index],
+                          place: widget.place,
                         );
                       },
                       separatorBuilder: (BuildContext context, int index){

@@ -1,4 +1,6 @@
 
+import 'dart:developer';
+
 import 'package:firebase_database/firebase_database.dart';
 
 class UserModel {
@@ -31,5 +33,16 @@ class UserModel {
     documents = (snapshot.value as dynamic)["documents"];
     blocked = (snapshot.value as dynamic)["blocked"];
     verified = (snapshot.value as dynamic)["verified"];
+  }
+
+  UserModel.fromJson(Map jsonData){
+    id = jsonData["_id"];
+    name = jsonData["name"];
+    phone = jsonData["phone"];
+    email = jsonData["email"];
+    address = jsonData["address"];
+    documents = jsonData["documents"];
+    blocked = jsonData["blocked"];
+    verified = jsonData["verified"];
   }
 }

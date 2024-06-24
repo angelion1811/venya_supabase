@@ -1,6 +1,9 @@
 import "dart:convert";
 
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+
+import '../infoHandler/app_info.dart';
 
 class RequestAssistant{
 
@@ -20,5 +23,52 @@ class RequestAssistant{
       return "Error Ocurred. Failed. No Response.";
     }
 
+  }
+
+ static Future<http.Response> registerUser(userData) {
+   return http.post(
+     Uri.parse('https://venya-backend.vercel.app/api/user/register'),
+     headers: <String, String>{
+       'Content-Type': 'application/json; charset=UTF-8',
+       // 'Authorization': 'Bearer ${authController.token}',
+       'Accept': 'application/json;'
+     },
+     body: jsonEncode(userData),
+   );
+  }
+
+  static Future<http.Response> loginUser(userData) {
+    return http.post(
+      Uri.parse('https://venya-backend.vercel.app/api/user/login'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        // 'Authorization': 'Bearer ${authController.token}',
+        'Accept': 'application/json;'
+      },
+      body: jsonEncode(userData),
+    );
+  }
+
+  static Future<http.Response> addUserDocuments(String token, data) {
+    return http.put(
+      Uri.parse('https://venya-backend.vercel.app/api/user/register/documents'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': '${token}',
+        'Accept': 'application/json;',
+      },
+      body: jsonEncode(data),
+    );
+  }
+
+  static Future<http.Response> getProfile(String token) {
+    return http.get(
+      Uri.parse('https://venya-backend.vercel.app/api/user/profile'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': '${token}',
+        'Accept':'application/json;'
+      },
+    );
   }
 }

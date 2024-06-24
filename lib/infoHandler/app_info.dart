@@ -9,6 +9,7 @@ class AppInfo extends ChangeNotifier{
     int countTotalTrips = 0;
     List<String> historyTripsKeysList = [];
     List<TripsHistoryModel>  allTripsHistoryInformationList = [];
+    String token = '';
 
     void updatePickUpLocationAddress(Directions userPickUpAddress){
       userPickUpLocation = userPickUpAddress;
@@ -32,6 +33,11 @@ class AppInfo extends ChangeNotifier{
 
     updateOverAllTripsHistoryInformation(TripsHistoryModel eachTripModel){
       allTripsHistoryInformationList.add(eachTripModel);
+      notifyListeners();
+    }
+
+    updateToken(String newToken){
+      token = newToken;
       notifyListeners();
     }
 }

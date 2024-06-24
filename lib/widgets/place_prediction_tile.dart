@@ -13,8 +13,9 @@ class PlacePredictionTileDesign extends StatefulWidget {
   //const PlacePredictionTileDesign({Key? key}) : super(key: key);
 
   final PredictedPlaces? predictedPlaces;
+  final String? place;
 
-  PlacePredictionTileDesign({this.predictedPlaces});
+  PlacePredictionTileDesign({this.predictedPlaces, this.place});
 
   @override
   State<PlacePredictionTileDesign> createState() => _PlacePredictionTileDesignState();
@@ -40,13 +41,23 @@ class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
     directions.locationId = cPredictedPlaces.place_id;
     directions.locationLatitude = cPredictedPlaces.latitude;
     directions.locationLongitude = cPredictedPlaces.longitude;
-    Provider.of<AppInfo>(context, listen: false).updateDroffLocationAddress(directions);
-    setState(() {
-      userDropOffAddress = directions.locationName!;
-    });
+    if(widget.place != null) {
+      if(widget.place == 'origin') {
+        Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(
+            directions);
+        //setState(() {userDropOffAddress = directions.locationName!});
 
-    Navigator.pop(context, "obtainedDropoff");
+        Navigator.pop(context, "obtainedPickup");
+      } else {
+        Provider.of<AppInfo>(context, listen: false).updateDroffLocationAddress(
+            directions);
+        setState(() {
+          userDropOffAddress = directions.locationName!;
+        });
 
+        Navigator.pop(context, "obtainedDropoff");
+      }
+    }
     /*
     String placeDirectionDetailUrl = "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&keys=$mapKey";
 
@@ -82,7 +93,7 @@ class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
           getPlaceDirectionDetails(widget.predictedPlaces, widget.predictedPlaces!.place_id, context);
         },
         style: ElevatedButton.styleFrom(
-          primary: darkTheme? Colors.black: Colors.white
+          backgroundColor: darkTheme? Colors.black: Colors.white
         ),
         child: Padding(
           padding: EdgeInsets.all(0.0),

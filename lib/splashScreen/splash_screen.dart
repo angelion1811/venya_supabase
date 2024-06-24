@@ -4,11 +4,16 @@ import 'dart:developer';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/global/global.dart';
+import 'package:ven_app/models/user_model.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
 import 'package:ven_app/screens/register_documents_screen.dart';
+
+import '../Assistants/request_assistant.dart';
+import '../infoHandler/app_info.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -21,49 +26,67 @@ class _SplashScreenState extends State<SplashScreen> {
 
   startTimer(){
     Timer(Duration(seconds: 3), ()async{
-      if(await firebaseAuth.currentUser == null) {
-        Navigator.push(context, MaterialPageRoute(builder: (c)=>LoginScreen()));
+      var token = Provider
+          .of<AppInfo>(context, listen: false)
+          .token;
+
+      log('token: ${token}');
+
+      if (token.isEmpty) {
+        Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
         return;
       }
-      await AssistantMethods.readCurrentOnLineUserInfo();
-      print("data of user");
-      print(userModelCurrentInfo);
-      await Timer(Duration(seconds: 3),()async{
-        print("userModelCurrentInfo");
-        if(userModelCurrentInfo == null){
-          firebaseAuth.signOut();
-          Navigator.push(context, MaterialPageRoute(builder: (c)=>LoginScreen()));
+
+      dynamic res = await RequestAssistant.getProfile('$token');
+
+      log("llego aqui ${res.statusCode}");
+
+      if(res.statusCode != 200){
+        Provider.of<AppInfo>(context, listen: false).updateToken("");
+        Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
+        return;
+      }
+      try {
+        var body = jsonDecode(res.body) as Map;
+        log(res.body);
+        userModelCurrentInfo = UserModel.fromJson(body['data']);
+
+        log('$userModelCurrentInfo');
+
+        if (userModelCurrentInfo!.documents == null) {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (c) => RegisterDocumentsScreen()));
           return;
         }
-        if(userModelCurrentInfo!.documents == null){
-          Navigator.push(context, MaterialPageRoute(builder: (c)=>RegisterDocumentsScreen()));
-          return;
-        }
-        if(userModelCurrentInfo!.blocked == true){
+        if (userModelCurrentInfo!.blocked == true) {
           Fluttertoast.showToast(msg: "Usuario Bloquedo");
-          firebaseAuth.signOut();
-          Navigator.push(context, MaterialPageRoute(builder: (c)=>LoginScreen()));
+          Provider.of<AppInfo>(context, listen: false).updateToken("");
+          Navigator.push(
+              context, MaterialPageRoute(builder: (c) => LoginScreen()));
           return;
         }
-
-        if(userModelCurrentInfo!.verified == false){
+        if (userModelCurrentInfo!.verified == false) {
+          Provider.of<AppInfo>(context, listen: false).updateToken("");
           Fluttertoast.showToast(msg: "Usuario no verificado");
-          firebaseAuth.signOut();
-          Navigator.push(context, MaterialPageRoute(builder: (c)=>LoginScreen()));
+          Navigator.push(
+              context, MaterialPageRoute(builder: (c) => LoginScreen()));
           return;
         }
-        Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
+        Navigator.push(context, MaterialPageRoute(builder: (c) => MainScreen()));
+      } catch(e){
+        log('error $e');
 
-      });
+      }
     });
-  }
 
+
+  }
   @override
-  void initState(){
+  void initState() {
     //Todo Implementa inistate
     super.initState();
-
     startTimer();
+
   }
   Widget build(BuildContext context) {
     return Scaffold(

@@ -1,73 +1,55 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
-import 'package:ven_app/Assistants/request_assistant.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/screens/forgot_password_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
 import 'package:ven_app/screens/register_screen.dart';
 import 'package:ven_app/splashScreen/splash_screen.dart';
 
-import '../infoHandler/app_info.dart';
-import '../models/user_model.dart';
 
-
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+class LoginScreenOld extends StatefulWidget {
+  const LoginScreenOld({Key? key}) : super(key: key);
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginScreenOld> createState() => _LoginScreenOldState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenOldState extends State<LoginScreenOld> {
   final emailTextEditingContentController = TextEditingController();
   final passwordTextEditingContentController = TextEditingController();
   bool _passwordVisible = false;
-  bool isSubmitted = false;
   final _formKey = GlobalKey<FormState>();
 
   void _submit() async {
     //validate field of form;
     if(_formKey.currentState!.validate()){
-      Map userLogin = {
-        'email': emailTextEditingContentController.text.trim(),
-        'password': passwordTextEditingContentController.text.trim()
-      };
-
-      var res = await RequestAssistant.loginUser(userLogin);
-      if(res.statusCode == 404){
-        Fluttertoast.showToast(msg: "Usuario Invalido");
-        setState(()=> isSubmitted = false);
-      } else if(res.statusCode == 400) {
-        var body = jsonDecode(res.body) as Map;
-        for (String key in body["errors"].keys) {
-          for (String value in body["errors"][key]) {
-            //print("$key: ${responseBody["errors"][key][value]}");
-            await Fluttertoast.showToast(msg: "$key: ${value}");
+      await firebaseAuth.signInWithEmailAndPassword(
+          email: emailTextEditingContentController.text.trim(),
+          password: passwordTextEditingContentController.text.trim()
+      ).then((auth)  async {
+       DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users");
+        userRef.child(firebaseAuth.currentUser!.uid).once().then((value) async {
+          final snap = value.snapshot;
+          if(snap.value != null){
+            currentUser = auth.user;
+            await Fluttertoast.showToast(msg: "Inicio de sesión exitosamente");
+            await AssistantMethods.readCurrentOnLineUserInfo();
+            Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
+          } else {
+            await Fluttertoast.showToast(msg: "No hay registro con este correo");
+            firebaseAuth.signOut();
+            Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
           }
-        }
-        setState(()=> isSubmitted = false);
-      } else if(res.statusCode == 200){
-        Fluttertoast.showToast(msg: "Inicio de sesión de usuario exitosamente");
-        var body = jsonDecode(res.body) as Map;
-        Provider.of<AppInfo>(context, listen: false).updateToken(body['token']);
-        userModelCurrentInfo = UserModel.fromJson(body['data']);
-        Navigator.push(context, MaterialPageRoute(builder: (c) => SplashScreen()));
-      } else {
-        Fluttertoast.showToast(msg: "error");
-        setState(()=> isSubmitted = false);
-      }
-
+        });
+      }).catchError((errorMessage){
+        Fluttertoast.showToast(msg: "Error ocurrido \n $errorMessage");
+      });
     } else {
-      Fluttertoast.showToast(msg: "error");
-
-      setState(()=> isSubmitted = false);
+      Fluttertoast.showToast(msg: "No todos los campos esta llenos");
     }
 
   }
@@ -199,19 +181,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               SizedBox(height: 10,),
                              ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: isSubmitted? Colors.blueGrey.shade100: darkTheme? Colors.amber.shade400:Colors.blue,
+                                    backgroundColor: darkTheme? Colors.amber.shade400:Colors.blue,
                                     foregroundColor: darkTheme? Colors.black:Colors.white,
                                     elevation: 50,
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                     minimumSize: Size(double.infinity, 50)
                                 ),
                                 onPressed: (){
-                                  if(isSubmitted == false){
-                                    setState(()=> isSubmitted = true);
-                                    _submit();
-                                  } else {
-                                    Fluttertoast.showToast(msg: "esperando respuesta...");
-                                  }
+                                  _submit();
                                 },
                                 child: Text('Inicio de sesión',
                                   style: TextStyle(fontSize: 20),

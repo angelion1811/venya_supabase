@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -9,26 +8,22 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:provider/provider.dart';
-import 'package:ven_app/Assistants/request_assistant.dart';
 import 'package:ven_app/global/global.dart';
-import 'package:ven_app/models/user_model.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
 import 'package:ven_app/screens/register_documents_screen.dart';
 
 import '../Assistants/assistant_methods.dart';
 import '../Helpers/custom_functions.dart';
-import '../infoHandler/app_info.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+class RegisterScreenOld extends StatefulWidget {
+  const RegisterScreenOld({Key? key}) : super(key: key);
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterScreenOld> createState() => _RegisterScreenOldState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenOldState extends State<RegisterScreenOld> {
 
   final nameTextEditingContentController = TextEditingController();
   final identificationNumberTextEditingContentController = TextEditingController();
@@ -64,45 +59,60 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _submit() async {
     //validate field of form;
     if (_formKey.currentState!.validate()) {
-        Map userMap = {
-          'name': nameTextEditingContentController.text.trim(),
-          'email': emailTextEditingContentController.text.trim(),
-          'password': passwordTextEditingContentController.text.trim(),
-          'identification_type': selectedIndentificationType,
-          'identification_number': identificationNumberTextEditingContentController
-              .text.trim(),
-          'address': addressTextEditingContentController.text.trim(),
-          'phone': phoneTextEditingContentController.text.trim()
-        };
+      print("llego a al submit de registrar datos personales");
+      bool identificationIsntInUsers = await AssistantMethods.checkIfRecordExists("users", "identification_number", identificationNumberTextEditingContentController.text.trim());
+      bool identificationIsntInDrivers = await AssistantMethods.checkIfRecordExists("drivers", "identification_number", identificationNumberTextEditingContentController.text.trim());
+      bool phoneIsntInUsers = await AssistantMethods.checkIfRecordExists("users", "phone", phoneTextEditingContentController.text.trim());
+      bool phoneIsntInDrivers = await AssistantMethods.checkIfRecordExists("drivers", "phone", phoneTextEditingContentController.text.trim());
+      print("2 llego a al submit de registrar datos personales");
+      Timer(Duration(seconds: 5), () async {
+        if (!identificationIsntInUsers && !identificationIsntInDrivers &&
+            !phoneIsntInUsers && !phoneIsntInDrivers) {
+          print("asdasd");
+          await firebaseAuth.createUserWithEmailAndPassword(
+              email: emailTextEditingContentController.text.trim(),
+              password: passwordTextEditingContentController.text.trim()
+          ).then((auth) async {
+            currentUser = auth.user;
+            if (currentUser != null) {
+              Map userMap = {
+                'id': currentUser!.uid,
+                'name': nameTextEditingContentController.text.trim(),
+                'identification_type': selectedIndentificationType,
+                'identification_number': identificationNumberTextEditingContentController
+                    .text.trim(),
+                'email': emailTextEditingContentController.text.trim(),
+                'address': addressTextEditingContentController.text.trim(),
+                'phone': phoneTextEditingContentController.text.trim(),
+                "blocked": false,
+                "verified": false,
+              };
 
-        dynamic res = await RequestAssistant.registerUser(userMap);
-        print("result get");
-        print(res.statusCode);
-        print(res.body);
-
-        if(res.statusCode == 400) {
-          var body = jsonDecode(res.body) as Map;
-          for (String key in body["errors"].keys) {
-            for (String value in body["errors"][key]) {
-              //print("$key: ${responseBody["errors"][key][value]}");
-              await Fluttertoast.showToast(msg: "$key: ${value}");
+              DatabaseReference userRef = FirebaseDatabase.instance.ref().child(
+                  'users');
+              userRef.child(currentUser!.uid).set(userMap);
+              await Fluttertoast.showToast(msg: "usuario registrado con exito");
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (c) => RegisterDocumentsScreen()));
             }
+          }).catchError((errorMessage) {
+            Fluttertoast.showToast(msg: "Error ocurrido \n $errorMessage");
+            setState(() => isSubmitted = false);
+          });
+        } else {
+          if (identificationIsntInDrivers || identificationIsntInUsers) {
+            Fluttertoast.showToast(
+                msg: "lo sentimos pero el numero de indentificacion ya existe");
+            setState(() => isSubmitted = false);
           }
-          setState(()=> isSubmitted = false);
+          if (phoneIsntInUsers || phoneIsntInDrivers) {
+            Fluttertoast.showToast(
+                msg: "lo sentimos pero el numero de telefono ya existe");
+            setState(() => isSubmitted = false);
+          }
         }
-
-        if(res.statusCode == 200){
-          var body = jsonDecode(res.body) as Map;
-          Provider.of<AppInfo>(context, listen: false).updateToken(body['token']);
-
-          userModelCurrentInfo = UserModel.fromJson(body['data']);
-
-          print('userModelCurrentInfo');
-          print(userModelCurrentInfo!.id);
-          await Fluttertoast.showToast(msg: "usuario registrado con exito");
-          Navigator.push(context, MaterialPageRoute(builder: (c) => RegisterDocumentsScreen()));
-        }
-
+      }
+      );
     } else {
       Fluttertoast.showToast(msg: "No todos los campos esta llenos");
       setState(() => isSubmitted = false);
@@ -444,7 +454,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 SizedBox(height: 20,),
                                 GestureDetector(
                                   onTap: (){
-                                    Navigator.push(context, MaterialPageRoute(builder: (c)=>RegisterScreen()));
+                                    Navigator.push(context, MaterialPageRoute(builder: (c)=>RegisterScreenOld()));
                                   },
                                   child: Text('¿Has olvidado tu contraseña?',
                                     style: TextStyle(

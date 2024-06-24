@@ -70,7 +70,7 @@ class _PayFareAmountDialogState extends State<PayFareAmountDialog> {
                   padding: EdgeInsets.all(10),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                        primary: darkTheme ? Colors.amber.shade400 : Colors.white
+                        backgroundColor: darkTheme ? Colors.amber.shade400 : Colors.white
                     ),
                     onPressed: (){
                       Future.delayed(Duration(milliseconds: 10000), (){

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'dart:async';
@@ -10,16 +9,12 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:provider/provider.dart';
 import 'package:ven_app/global/global.dart';
-import 'package:ven_app/infoHandler/app_info.dart';
 import 'package:ven_app/screens/forgot_password_screen.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
 import 'package:ven_app/widgets/file_selector.dart';
 
-import '../Assistants/request_assistant.dart';
-import '../models/user_model.dart';
 import '../splashScreen/splash_screen.dart';
 
 class RegisterDocumentsScreen extends StatefulWidget {
@@ -47,45 +42,16 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
     //validate field of form;
 
     if(_formKey.currentState!.validate()){
-      try {
-
       Map documents = {
         "imageSelfie": urlOfUploadedImageSelfie,
         "imageDocument": urlOfUploadedImageDocument,
         "imageSelfieWithDocument": urlOfUploadedImageSelfieWithDocument,
       };
 
-      String tokenReq = Provider.of<AppInfo>(context, listen: false).token;
-      log('$tokenReq');
-      dynamic res = await RequestAssistant.addUserDocuments(tokenReq,documents);
-      print("result put registerUser");
-      print('res.statusCode');
-      await Fluttertoast.showToast(msg: "Estatus: ${res.statusCode}");
-      if(res.statusCode == 400) {
-        var body = jsonDecode(res.body) as Map;
-        for (String key in body["errors"].keys) {
-          for (String value in body["errors"][key]) {
-            await Fluttertoast.showToast(msg: "$key: ${value}");
-          }
-        }
-        setState(()=> isSubmitted = false);
-      } else if(res.statusCode == 201){
-        log("fhgfgh");
-        await Fluttertoast.showToast(msg: "Documentos de Indetificacion guardados, Felicitaciones");
-        Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
-      } else if(res.statusCode == 401){
-        Provider.of<AppInfo>(context, listen: false).updateToken('');
-        Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
-      } else {
-        await Fluttertoast.showToast(msg: "Estatus: ${res.statusCode}");
-        setState(()=> isSubmitted = false);
-      }
-      } catch(e){
-        log('Error: $e');
-        Fluttertoast.showToast(msg: "error");
-        setState(()=> isSubmitted = false);
-      }
-
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child('users');
+      userRef.child(currentUser!.uid).child("documents").set(documents);
+      await Fluttertoast.showToast(msg: "Documentos de Indetificacion guardados, Felicitaciones");
+      Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
     } else {
       Fluttertoast.showToast(msg: "No todos los campos esta llenos");
       setState(()=> isSubmitted = false);
@@ -117,20 +83,27 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
 
   Future<String> uploadImageToStorage(XFile? xFile) async {
     String imageIDName = DateTime.now().millisecondsSinceEpoch.toString();
+    log("imageIDName");
     Reference referenceImage = FirebaseStorage.instance.ref().child("Images").child(imageIDName);
+    log("referenceImage");
     UploadTask uploadTask = referenceImage.putFile(File(xFile!.path));
+    log("uploadTask");
     TaskSnapshot snapshot = await uploadTask;
+    log("snapshot de la imagen");
     return snapshot.ref.getDownloadURL();
   }
 
   uploadImagesToStorage() async {
+    log("subiendo imagenes");
     setState(()=> isSubmitted = true);
-    log("asdkfanbsjkba");
+    log("setState");
     if(imageSelfie == null) {
       Fluttertoast.showToast(msg: "Por favor, tomarse una foto");
       setState(()=> isSubmitted = false);
       return;
     }
+    log("imageSelfie == null");
+
 
     if(imageDocument == null) {
       Fluttertoast.showToast(msg: "Por favor, tomar una foto al documento de identidad");
@@ -138,18 +111,25 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
       return;
     }
 
+    log("imageSelfie == null");
+
+
     if(imageSelfieWithDocument == null) {
       Fluttertoast.showToast(msg: "Por favor, tomarse una foto con el documento de indetidad");
       setState(()=> isSubmitted = false);
       return;
     }
+    log("imageSelfie");
 
     try{
+      log("imageSelfie");
       urlOfUploadedImageSelfie  = await uploadImageToStorage(imageSelfie);
-      print("aqui no hay error");
+      Fluttertoast.showToast(msg: "Foto de perfil cargada");
       urlOfUploadedImageDocument =  await uploadImageToStorage(imageDocument);
+      Fluttertoast.showToast(msg: "Foto de documento de identidad cargada");
       urlOfUploadedImageSelfieWithDocument = await uploadImageToStorage(imageSelfieWithDocument);
       Fluttertoast.showToast(msg: "Foto de perfil con documento de identidad cargada");
+      log("imagenes subida");
       setState((){
         urlOfUploadedImageSelfie;
         urlOfUploadedImageDocument;
@@ -159,8 +139,7 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
       _submit();
 
     } catch(e){
-      log('Error: $e');
-      Fluttertoast.showToast(msg: "error");
+      log("hay un error");
       setState(()=> isSubmitted = false);
     }
 

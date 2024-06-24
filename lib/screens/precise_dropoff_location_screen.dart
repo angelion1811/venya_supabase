@@ -35,39 +35,7 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
   double bottonPaddingOfMap = 0;
 
   List<PredictedPlaces> placesPredictedList = [];
-  findPlaceAutoComplete(String inputText) async {
-    if(inputText.length > 1){
-      //String urlAutoCompleteSearch = "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$inputText&keys=$mapKey&components=country:BD";
-      String urlAutoCompleteSearch = 'https://nominatim.openstreetmap.org/search?q=${inputText}&limit=20&format=json&addressdetails=1';
-      print('urlAutoCompleteSearch');
-      print(urlAutoCompleteSearch);
 
-      var responseApiAutoCompleteSearch = await RequestAssistant.receiveRequest(urlAutoCompleteSearch);
-
-      if(responseApiAutoCompleteSearch == "Error Ocurred. Failed. No Response."){
-        return;
-      }
-      print('responseApiAutoCompleteSearch');
-      print(responseApiAutoCompleteSearch.toString());
-      if(responseApiAutoCompleteSearch!.length > 0){
-        var placePredictions = responseApiAutoCompleteSearch;
-        var placePredictionsList = (placePredictions as List).map((jsonData) => PredictedPlaces.fromJson(jsonData)).toList();
-        setState(() { placesPredictedList = placePredictionsList; });
-      }
-
-      /*
-      if(responseApiAutoCompleteSearch["status"] == "OK"){
-        var placePredictions = responseApiAutoCompleteSearch["predictions"];
-
-        var placePredictionsList = (placePredictions as List).map((jsonData) => PredictedPlaces.fromJson(jsonData)).toList();
-
-        setState(() {
-          placesPredictedList = placePredictionsList;
-        });
-      }
-       */
-    }
-  }
 
   static const CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
@@ -117,6 +85,7 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
       print(e);
     }
   }
+
   @override
   Widget build(BuildContext context) {
     bool darkTheme = MediaQuery.of(context).platformBrightness == Brightness.dark;
@@ -166,46 +135,105 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
                 ),
               ),
               Positioned(
-                  top: 40,
-                  right: 20,
-                  left: 20,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black),
-                      color: Colors.white,
-                    ),
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                      displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
-                      overflow: TextOverflow.visible,
-                      softWrap: true,
-                    ),
-                  )
-              ),
-              Positioned(
-                bottom: 40,
-                left: 0,
-                right: 0,
+                top: 0,
+                left: 20,
+                right: 20,
                 child: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen()));
-                      if(responseFromSearch == 'obtainedDropoff'){
-                        await locateDropOffPosition();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                        primary: darkTheme? Colors.amber.shade400: Colors.blue,
-                        textStyle: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        )
-                    ),
-                    child: Text("Buscar destino"),
+                  padding: EdgeInsets.fromLTRB(5, 50, 5, 5),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                              color: darkTheme ? Colors.black : Colors.white,
+                              borderRadius: BorderRadius.circular(10)
+                          ),
+                          child: Column(
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.all(5),
+                                child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      ElevatedButton(
+                                          onPressed: () async {
+                                            var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen(place: 'destiny',)));
+                                            if(responseFromSearch == 'obtainedDropoff'){
+                                              await locateDropOffPosition();
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue,
+                                              textStyle: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              )
+                                          ),
+                                          child: Row(
+                                              children:[
+                                                Icon(Icons.search, color: darkTheme ? Colors.black: Colors.white ),
+                                                SizedBox(width: 10,),
+                                                Text("Buscar",
+                                                  style: TextStyle(
+                                                    color: darkTheme ? Colors.black: Colors.white,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ])
+                                      ),]
+                                ),
+                              ),
+                              SizedBox(height: 10,),
+                              Container(
+                                decoration: BoxDecoration(
+                                    color: darkTheme? Colors.grey.shade900 : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(10)
+                                ),
+                                child: Column(
+                                  children: [
+                                    SizedBox(height: 5,),
+                                    Padding(
+                                      padding: EdgeInsets.all(5),
+                                      child: GestureDetector(
+                                        onTap: () async {
+
+                                        },
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.location_on_outlined, color: darkTheme? Colors.amber.shade400: Colors.blue ),
+                                            SizedBox(width: 10,),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text("Hasta donde",
+                                                    style: TextStyle(
+                                                        color: darkTheme? Colors.amber.shade400: Colors.blue,
+                                                        fontSize: 12,
+                                                        fontWeight: FontWeight.bold
+                                                    )
+                                                ),
+                                                Text(
+                                                  displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
+                                                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                                                ),
+                                              ],
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                  ],
+                                ),
+                              ),
+
+                            ],
+                          )
+                      )
+                    ],
                   ),
                 ),
-
               ),
               Positioned(
                 bottom: 0,
@@ -220,13 +248,18 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
                       Navigator.pop(context, "obtainedDropoff");
                     },
                     style: ElevatedButton.styleFrom(
-                        primary: darkTheme? Colors.amber.shade400: Colors.blue,
+                        backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue,
                         textStyle: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         )
                     ),
-                    child: Text("Asignar localización de destino"),
+                    child: Text("Asignar localización de destino",
+                      style: TextStyle(
+                        color: darkTheme ? Colors.black: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
 
