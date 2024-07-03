@@ -7,6 +7,10 @@ import '../infoHandler/app_info.dart';
 
 class RequestAssistant{
 
+  //static String _baseUrl ='https://venya-backend.vercel.app';
+  static String _baseUrl ='https://venya-backend.onrender.com';
+  //static String _baseUrl ='https://6639wp30-3000.use.devtunnels.ms/';
+
   static Future<dynamic> receiveRequest(String url) async {
     http.Response httpResponse = await http.get(Uri.parse(url));
 
@@ -27,7 +31,7 @@ class RequestAssistant{
 
  static Future<http.Response> registerUser(userData) {
    return http.post(
-     Uri.parse('https://venya-backend.vercel.app/api/user/register'),
+     Uri.parse('$_baseUrl/api/user/register'),
      headers: <String, String>{
        'Content-Type': 'application/json; charset=UTF-8',
        // 'Authorization': 'Bearer ${authController.token}',
@@ -39,7 +43,7 @@ class RequestAssistant{
 
   static Future<http.Response> loginUser(userData) {
     return http.post(
-      Uri.parse('https://venya-backend.vercel.app/api/user/login'),
+      Uri.parse('$_baseUrl/api/user/login'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
         // 'Authorization': 'Bearer ${authController.token}',
@@ -51,7 +55,7 @@ class RequestAssistant{
 
   static Future<http.Response> addUserDocuments(String token, data) {
     return http.put(
-      Uri.parse('https://venya-backend.vercel.app/api/user/register/documents'),
+      Uri.parse('$_baseUrl/api/user/register/documents'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
         'Authorization': '${token}',
@@ -63,7 +67,7 @@ class RequestAssistant{
 
   static Future<http.Response> getProfile(String token) {
     return http.get(
-      Uri.parse('https://venya-backend.vercel.app/api/user/profile'),
+      Uri.parse('$_baseUrl/api/user/profile'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
         'Authorization': '${token}',

@@ -75,6 +75,11 @@ class _SplashScreenState extends State<SplashScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (c) => MainScreen()));
       } catch(e){
         log('error $e');
+         Provider.of<AppInfo>(context, listen: false).updateToken("");
+          Fluttertoast.showToast(msg: "Error");
+          Navigator.push(
+              context, MaterialPageRoute(builder: (c) => LoginScreen()));
+          return;
 
       }
     });

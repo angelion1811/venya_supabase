@@ -342,9 +342,7 @@ class _MainScreenOldState extends State<MainScreenOld> {
   }
 
   void showUISearchingForDriversContainer(){
-    setState(() {
-      searchingForDriverContainerHeight = 200;
-    });
+    setState(()=>searchingForDriverContainerHeight = 200);
   }
 
   void showSuggestedRidesContainer(){
@@ -524,8 +522,6 @@ class _MainScreenOldState extends State<MainScreenOld> {
       return;
     }
     await retrieveOnlineDriversInformation(onlineNearByAvailableDriversList);
-
-    print("Driver list: "+driversList.toString());
 
     for(int i = 0; i < driversList.length; i++){
       if(driversList[i]["car_details"]["type"] == selectedVehicleType){
