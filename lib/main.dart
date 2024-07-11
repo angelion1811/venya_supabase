@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
         create: (context) => AppInfo(),
         child:MaterialApp(
-          title: 'Flutter Demo',
+          title: 'Venya',
           themeMode: ThemeMode.system,
           theme: MyThemes.lightTheme,
           darkTheme: MyThemes.darkTheme,

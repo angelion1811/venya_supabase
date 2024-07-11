@@ -91,6 +91,7 @@ class AssistantMethods {
   }
 
   static sendNotificationToDriverNow(String deviceRegistrationToken, String userRideRequestId, context) async {
+    print("sendNotificationToDriverNow");
     String destinationAddress = userDropOffAddress;
 
     Map<String, String> headerNotification = {

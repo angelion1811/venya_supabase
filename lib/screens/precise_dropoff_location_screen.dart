@@ -130,8 +130,8 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
               Align(
                 alignment: Alignment.center,
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 25),
-                  child: Image.asset('images/pick_old_3.png', height: 25, width: 25,),
+                  padding: const EdgeInsets.only(top: 0.5),
+                  child: Image.asset('images/pick_old_3.png', height: 45, width: 45,),
                 ),
               ),
               Positioned(

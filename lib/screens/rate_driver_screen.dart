@@ -20,6 +20,33 @@ class _RateDriverScreenState extends State<RateDriverScreen> {
 
     bool darkTheme = MediaQuery.of(context).platformBrightness == Brightness.dark;
 
+    qualifyDriver(double valueOfStartsChoosed) {
+      print("qualifyDriver $valueOfStartsChoosed $countRatingStarts");
+      countRatingStarts = valueOfStartsChoosed;
+      if(countRatingStarts == 1){
+        setState(()=>titleStartRating = "Muy mal");
+      }
+      if(countRatingStarts == 2){
+        setState(()=>titleStartRating = "Muy mal");
+      }
+      if(countRatingStarts == 3){
+        setState(()=>titleStartRating = "Muy mal");
+      }
+      if(countRatingStarts == 4){
+        setState(()=>titleStartRating = "Muy mal");
+      }
+      if(countRatingStarts == 5){
+        setState(()=>titleStartRating = "Muy mal");
+      }
+    }
+
+    saveQualify(){
+
+      Navigator.pop(context, "qualified");
+      Fluttertoast.showToast(msg: "Calificado");
+
+    }
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14)
@@ -37,7 +64,15 @@ class _RateDriverScreenState extends State<RateDriverScreen> {
           children: [
             SizedBox(height: 22,),
 
-            Text("calificar experiencia de viaje",
+            Text("calificar experiencia",
+              style: TextStyle(
+                fontSize: 22,
+                letterSpacing: 2,
+                fontWeight: FontWeight.bold,
+                color: darkTheme? Colors.amber.shade400: Colors.blue,
+              ),
+            ),
+            Text("de viaje",
               style: TextStyle(
                 fontSize: 22,
                 letterSpacing: 2,
@@ -57,23 +92,7 @@ class _RateDriverScreenState extends State<RateDriverScreen> {
                 color: darkTheme ? Colors.amber.shade400: Colors.blue,
                 borderColor: darkTheme ? Colors.amber.shade400: Colors.grey,
                 size: 40,
-                onRatingChanged: (valueOfStartsChoosed) {
-                     if(countRatingStarts == 1){
-                        setState(()=>titleStartRating = "Muy mal");
-                     }
-                     if(countRatingStarts == 2){
-                       setState(()=>titleStartRating = "Muy mal");
-                     }
-                     if(countRatingStarts == 3){
-                       setState(()=>titleStartRating = "Muy mal");
-                     }
-                     if(countRatingStarts == 4){
-                       setState(()=>titleStartRating = "Muy mal");
-                     }
-                     if(countRatingStarts == 5){
-                       setState(()=>titleStartRating = "Muy mal");
-                     }
-                },
+                onRatingChanged: (valueOfStartsChoosed)=>qualifyDriver(valueOfStartsChoosed),
             ),
 
             SizedBox(height: 10,),
@@ -89,27 +108,7 @@ class _RateDriverScreenState extends State<RateDriverScreen> {
             SizedBox(height: 20,),
 
             ElevatedButton(
-                onPressed: (){
-                  DatabaseReference rateDriverRef = FirebaseDatabase.instance.ref()
-                      .child("drivers")
-                      .child(widget.assignedDriverId!)
-                      .child("ratings");
-
-                  rateDriverRef.once().then((snap){
-                    if(snap.snapshot.value == null){
-                      rateDriverRef.set(countRatingStarts.toString());
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (c)=> SplashScreen()));
-                    } else {
-                      double pastRatings = double.parse(snap.snapshot.value.toString());
-                      double newAverageRatings = (pastRatings + countRatingStarts)/2;
-                      rateDriverRef.set(newAverageRatings.toString());
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (c)=> SplashScreen()));
-                    }
-                    Fluttertoast.showToast(msg: "Reiniciando la aplicación");
-                  });
-                },
+                onPressed: ()=>saveQualify(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: darkTheme ? Colors.amber.shade400 : Colors.blue,
                 ),

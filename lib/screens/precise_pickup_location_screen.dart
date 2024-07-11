@@ -131,7 +131,7 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
             Align(
               alignment: Alignment.center,
               child: Padding(
-                padding: const EdgeInsets.only(top: 1),
+                padding: const EdgeInsets.only(top: 0.5),
                 child: Image.asset('images/pick_old_3.png', height: 45, width: 45,),
               ),
             ),

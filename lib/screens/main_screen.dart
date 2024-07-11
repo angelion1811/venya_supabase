@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/Assistants/geofire_assistant.dart';
+import 'package:ven_app/Assistants/request_assistant.dart';
 import 'package:ven_app/Helpers/custom_functions.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
@@ -81,6 +82,8 @@ class _MainScreenState extends State<MainScreen> {
   String selectedVehicleType = "";
   String driverRideStatus = "Driver is coming";
   StreamSubscription<DatabaseEvent>? tripRideRequestInfoStreamSubscription;
+  StreamSubscription<DatabaseEvent>? streamRideRequestStatus;
+  StreamSubscription<DatabaseEvent>? streamRideRequestDriverLocation;
   List<ActiveNearByAvailableDrivers> onlineNearByAvailableDriversList = [];
   String userRideRequestStatus = "";
   bool requestPositionInfo = true;
@@ -124,6 +127,7 @@ class _MainScreenState extends State<MainScreen> {
 
         // whenever any driver become non-active/online
           case Geofire.onKeyExited:
+            print("map key: ${map["key"]}");
             GeoFireAssistant.deleteOfflineDriverFromList(map["key"]);
             displayActiveDriversOnUserMap();
             break;
@@ -199,29 +203,17 @@ class _MainScreenState extends State<MainScreen> {
 
     Navigator.pop(context);
 
-    /*
-    PolylinePoints pPOints = PolylinePoints();
-    List<PointLatLng> decodePolylinePointsResultList = pPOints.decodePolyline(directionDetailsInfo.e_points!);
-
-    pLineCoordinatedList.clear();
-
-    if(decodePolylinePointsResultList.isNotEmpty){
-      decodePolylinePointsResultList.forEach((PointLatLng pointLatLng) {
-        pLineCoordinatedList.add(LatLng(pointLatLng.latitude, pointLatLng.longitude));
-      });
-    }
-    */
     pLineCoordinatedList.clear();
 
     if(directionDetailsInfo.e_points!.isNotEmpty){
         var list = directionDetailsInfo.e_points;
         for(int i=0; i< list.length; i++){
-          pLineCoordinatedList.add(LatLng(list[i][1], list[i][0]));
+          double lat = (list[i][1] is int)? double.parse(list[i][1].toString()):list[i][1];
+          double long = (list[i][1] is int)? double.parse(list[i][0].toString()):list[i][0];
+          pLineCoordinatedList.add(LatLng(lat,long));
         }
     }
-    setState(() {
-      polylineSet.clear();
-    });
+    setState(()=> polylineSet.clear());
 
     setState(() {
       Polyline polyline = Polyline(
@@ -234,7 +226,6 @@ class _MainScreenState extends State<MainScreen> {
         geodesic: true,
         width: 5,
       );
-
 
       polylineSet.add(polyline);
     });
@@ -356,28 +347,19 @@ class _MainScreenState extends State<MainScreen> {
       "userPhone": userModelCurrentInfo!.phone,
       "originAddress": originLocation.locationName,
       "destinationAddress": destinationLocation.locationName,
-      "driverId":"waiting",
+      "status":"waiting",
+      "driverId":"-"
     };
 
-
     referenceRideRequest!.set(rideInformationMap);
+
+/*
 
     tripRideRequestInfoStreamSubscription = referenceRideRequest!.onValue.listen((eventSnap) async{
       if(eventSnap.snapshot.value == null){
         return;
       }
 
-      (eventSnap.snapshot.value as Map)["car_details"] != null?
-        setState(()=>driverCarDetails = (eventSnap.snapshot.value as Map)["car_details"].toString()):null;
-
-      (eventSnap.snapshot.value as Map)["driverPhone"] != null?
-        setState(()=>driverPhone = (eventSnap.snapshot.value as Map)["driverPhone"].toString()):null;
-
-      (eventSnap.snapshot.value as Map)["driverName"] != null?
-        setState(()=> driverName = (eventSnap.snapshot.value as Map)["driverName"].toString()):null;
-
-      (eventSnap.snapshot.value as Map)["ratings"] != null?
-        setState(()=> driverRatings = (eventSnap.snapshot.value as Map)["ratings"].toString()):null;
 
       if((eventSnap.snapshot.value as Map)["status"] != null){
         setState(()=> userRideRequestStatus = (eventSnap.snapshot.value as Map)["status"].toString());
@@ -420,9 +402,12 @@ class _MainScreenState extends State<MainScreen> {
                 Navigator.push(context, MaterialPageRoute(builder: (c)=> RateDriverScreen(
                   assignedDriverId: assignedDriverId,
                 )));
-
+                String tokenReq = Provider.of<AppInfo>(context, listen: false).token;
+                rideInformationMap['_id'] = referenceRideRequest!.key;
+                var responseRequest = await RequestAssistant.saveRide(tokenReq, rideInformationMap);
                 referenceRideRequest!.onDisconnect();
                 tripRideRequestInfoStreamSubscription!.cancel();
+                referenceRideRequest!.remove();
               }
             }
           }
@@ -430,11 +415,13 @@ class _MainScreenState extends State<MainScreen> {
       }
     });
 
+ */
+
     onlineNearByAvailableDriversList = GeoFireAssistant.activeNearByAvailableDriversList;
-    searchNearestOnlineDrivers(selectedVehicleType);
+    searchNearestOnlineDrivers(selectedVehicleType, rideInformationMap);
   }
 
-  searchNearestOnlineDrivers(String selectedVehicleType) async {
+  searchNearestOnlineDrivers(String selectedVehicleType, Map rideInformationMap) async {
     showUISearchingForDriversContainer();
 
     if(onlineNearByAvailableDriversList.length == 0){
@@ -460,14 +447,7 @@ class _MainScreenState extends State<MainScreen> {
 
     //en este ciclo se le envia la notificacion push con el token que tienes
     for(int i = 0; i < driversList.length; i++){
-      print('driversList[i]');
-      print(driversList[i]);
-      if(driversList[i]["car_details"]["type"] == selectedVehicleType){
-        print("va a llamar a token:");
-        print(driversList[i]["token"]);
-
-        print(referenceRideRequest!.key!);
-
+      if(driversList[i]["car_details"]["type"] == selectedVehicleType && driversList[i]["token"] != null){
         AssistantMethods.sendNotificationToDriverNow(driversList[i]["token"], referenceRideRequest!.key!, context);
       }
     }
@@ -475,20 +455,111 @@ class _MainScreenState extends State<MainScreen> {
     Fluttertoast.showToast(msg: "Notification sent successfully");
 
     //
-    await FirebaseDatabase.instance.ref().child("All Ride Requests").child(referenceRideRequest!.key!).child("driverId").onValue.listen((eventRideRequestSnapshot) {
+    streamRideRequestStatus = FirebaseDatabase.instance.ref().child("All Ride Requests").child(referenceRideRequest!.key!).child("status").onValue.listen((eventRideRequestSnapshot) async {
         print("EventSnapshot: ${eventRideRequestSnapshot.snapshot.value}");
-        if(eventRideRequestSnapshot.snapshot.value != "waiting"){
-          showUIForAssignedDriverInfo();
+
+        dynamic status = eventRideRequestSnapshot.snapshot.value;
+        if(status == "accepted"){
+          getAssignedDriverInfo();
+
+        } else if(status == "arrived"){
+          setState(() => driverRideStatus = "El Chofer ha llegado");
+          streamRideRequestDriverLocation!.cancel();
+        } else if(status == "ontrip"){
+          streamDriverLocationToLeavePassenger();
+        }else if(status == 'ended'){
+          streamRideRequestDriverLocation!.cancel();
+          streamRideRequestStatus!.cancel();
+          dynamic fareAmountRef = await referenceRideRequest!.child('fareAmount').get();
+          double fareAmount = double.parse(fareAmountRef.value);
+
+          var response = await showDialog(
+              context: context,
+              builder: (BuildContext context) => PayFareAmountDialog(
+                fareAmount: fareAmount,
+              )
+          );
+
+          if(response == "Cash Paid"){
+            //user can rate the driver now
+            dynamic driverId = await referenceRideRequest!.child('driverId').get();
+            String assignedDriverId = driverId.value;
+
+            Navigator.push(context, MaterialPageRoute(builder: (c)=> RateDriverScreen(
+              assignedDriverId: assignedDriverId,
+            )));
+
+            String tokenReq = Provider.of<AppInfo>(context, listen: false).token;
+            rideInformationMap['_id'] = referenceRideRequest!.key;
+            var responseRequest = await RequestAssistant.saveRide(tokenReq, rideInformationMap);
+            referenceRideRequest!.onDisconnect();
+            streamRideRequestDriverLocation!.cancel();
+            streamRideRequestStatus!.cancel();
+            referenceRideRequest!.remove();
+          }
         }
     });
 
+  }
+
+  getAssignedDriverInfo() async {
+
+    print("llego a getAssignedDriverInfo");
+
+    dynamic dataSnapshot = await referenceRideRequest!.get();
+    (dataSnapshot.value as Map)["car_details"] != null?
+    setState(()=>driverCarDetails = (dataSnapshot.value as Map)["car_details"].toString()):null;
+
+    (dataSnapshot.value as Map)["driverPhone"] != null?
+    setState(()=>driverPhone = (dataSnapshot.value as Map)["driverPhone"].toString()):null;
+
+    (dataSnapshot.value as Map)["driverName"] != null?
+    setState(()=> driverName = (dataSnapshot.value as Map)["driverName"].toString()):null;
+
+    (dataSnapshot.value as Map)["ratings"] != null?
+    setState(()=> driverRatings = (dataSnapshot.snapshot.value as Map)["ratings"].toString()):null;
+
+    if((dataSnapshot.value as Map)["driverLocation"] != null) {
+      double driverCurrentPositionLat = double.parse((dataSnapshot.value as Map)["driverLocation"]["latitude"].toString());
+      double driverCurrentPositionLng = double.parse((dataSnapshot.value as Map)["driverLocation"]["longitude"].toString());
+      LatLng driverCurrentPositionLatLng = LatLng(driverCurrentPositionLat, driverCurrentPositionLng);
+      updateArrivalTimeToUserPickUpLocation(driverCurrentPositionLatLng);
+      streamDriverLocationToGetPassenger();
+    }
+    showUIForAssignedDriverInfo();
+  }
+
+  streamDriverLocationToGetPassenger(){
+    streamRideRequestDriverLocation = referenceRideRequest!.child("driverLocation").onValue.listen((eventSnap) async{
+      if(eventSnap.snapshot.value == null){
+        return;
+      }
+      double driverCurrentPositionLat = double.parse((eventSnap.snapshot.value as Map)["latitude"].toString());
+      double driverCurrentPositionLng = double.parse((eventSnap.snapshot.value as Map)["longitude"].toString());
+
+      LatLng driverCurrentPositionLatLng = LatLng(driverCurrentPositionLat, driverCurrentPositionLng);
+      updateArrivalTimeToUserPickUpLocation(driverCurrentPositionLatLng);
+    });
+  }
+
+  streamDriverLocationToLeavePassenger(){
+    streamRideRequestDriverLocation = referenceRideRequest!.child("driverLocation").onValue.listen((eventSnap) async{
+      if(eventSnap.snapshot.value == null){
+        return;
+      }
+      double driverCurrentPositionLat = double.parse((eventSnap.snapshot.value as Map)["latitude"].toString());
+      double driverCurrentPositionLng = double.parse((eventSnap.snapshot.value as Map)["longitude"].toString());
+
+      LatLng driverCurrentPositionLatLng = LatLng(driverCurrentPositionLat, driverCurrentPositionLng);
+      updateReachingTimeToUserDropOffLocation(driverCurrentPositionLatLng);
+    });
   }
 
   showUIForAssignedDriverInfo(){
     setState((){
       waitingResponseFromDriverContainerHeight = 0;
       searchingForDriverContainerHeight = 0;
-      assignedDriverInfoContainerHeight = 200;
+      assignedDriverInfoContainerHeight = 210;
       suggestedRidesContainerHeight = 0;
       bottonPaddingOfMap = 200;
     });
@@ -661,9 +732,6 @@ class _MainScreenState extends State<MainScreen> {
                 )
             ),
 
-
-
-
             Positioned(
               bottom: 0,
                 left: 0,
@@ -697,9 +765,7 @@ class _MainScreenState extends State<MainScreen> {
                                         var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> PrecisePickUpLocationScreen()));
 
                                         if(responseFromSearch == 'obtainedDropoff'){
-                                          setState(() {
-                                            openNavigatorDrawer = false;
-                                          });
+                                          setState(()=>openNavigatorDrawer = false);
                                         }
                                         if(isRouteComplete()){
                                           await drawPolyLineFromOriginToDestination(darkTheme);
@@ -745,9 +811,7 @@ class _MainScreenState extends State<MainScreen> {
                                       var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> PreciseDropOffLocationScreen()));
 
                                       if(responseFromSearch == 'obtainedDropoff'){
-                                        setState(() {
-                                          openNavigatorDrawer = false;
-                                        });
+                                        setState(()=>openNavigatorDrawer = false);
                                       }
                                       if(isRouteComplete()){
                                         await drawPolyLineFromOriginToDestination(darkTheme);
@@ -881,7 +945,7 @@ class _MainScreenState extends State<MainScreen> {
                                 color: Colors.white,
                               ),
                             ),
-                            SizedBox(width: 15,),
+                            const SizedBox(width: 15,),
                             Text(
                               displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
                               style: TextStyle(
@@ -893,11 +957,9 @@ class _MainScreenState extends State<MainScreen> {
                           ],
                         ),
 
-                        SizedBox(height: 20,),
-
-                        Text("VIAJES SUGERIDOS", style: TextStyle(fontWeight: FontWeight.bold),),
-
-                        SizedBox(height: 20,),
+                        const SizedBox(height: 20,),
+                        const Text("VIAJES SUGERIDOS", style: TextStyle(fontWeight: FontWeight.bold),),
+                        const SizedBox(height: 20,),
 
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -911,11 +973,7 @@ class _MainScreenState extends State<MainScreen> {
                               vehicleTypeString: "Carro",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1)}'
                                   : "",
-                              onTap: (){
-                                setState(() {
-                                  selectedVehicleType = "Car";
-                                });
-                              },
+                              onTap: ()=>setState(()=>selectedVehicleType = "Car"),
                             ),
                             const SizedBox(width: 5,),
                             CardVehicleType(
@@ -927,11 +985,7 @@ class _MainScreenState extends State<MainScreen> {
                               vehicleTypeString: "CNG",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}'
                                   : "",
-                              onTap: (){
-                                setState(() {
-                                  selectedVehicleType = "CNG";
-                                });
-                              },
+                              onTap: ()=>setState(()=>selectedVehicleType = "CNG"),
                             ),
                             const SizedBox(width: 5,),
                             CardVehicleType(
@@ -943,16 +997,12 @@ class _MainScreenState extends State<MainScreen> {
                               vehicleTypeString: "Moto",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}'
                                   : "",
-                              onTap: (){
-                                setState(() {
-                                  selectedVehicleType = "Bike";
-                                });
-                              },
+                              onTap: ()=>setState(()=>selectedVehicleType = "Bike"),
                             )
                           ],
                         ),
 
-                        SizedBox(height: 20,),
+                        const SizedBox(height: 20,),
 
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1096,44 +1146,46 @@ class _MainScreenState extends State<MainScreen> {
                       SizedBox(height: 5),
                       Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                       SizedBox(height: 5),
+
                       Row(
+                        mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children:[
-                          Container(
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: darkTheme ? Colors.amber.shade400: Colors.lightBlue,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(Icons.person, color: darkTheme ? Colors.black : Colors.white),
-                          ),
-
-                          SizedBox(width: 10),
                           Row(
-                            mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children:[
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children:[
-                              Text(driverName, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                              Row(
-                                children:[
-                                  Icon(Icons.star, color: Colors.orange),
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: darkTheme ? Colors.amber.shade400: Colors.lightBlue,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.person, color: darkTheme ? Colors.black : Colors.white),
+                              ),
+                              SizedBox(width: 10,),
+                              Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children:[
+                                    Text(driverName,
+                                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)
+                                    ),
+                                    Row(
+                                        children:[
+                                          Icon(Icons.star, color: Colors.orange),
 
-                                  SizedBox(width: 5),
+                                          SizedBox(width: 5),
 
-                                  Text( driverRatings??"0.00",
-                                    style: TextStyle(
-                                      color: Colors.grey
+                                          Text("0.00",
+                                              style: TextStyle(
+                                                  color: Colors.black
+                                              )
+                                          )
+                                        ]
                                     )
-                                  )
-
-                                ]
-                              )
-                            ]
+                                  ]
+                              ),
+                            ],
                           ),
-
+                          SizedBox(width: 30,),
                           Column(
                             mainAxisAlignment: MainAxisAlignment.end,
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -1144,11 +1196,9 @@ class _MainScreenState extends State<MainScreen> {
                               
                             ]
                           ),
-                          ])
-
-
                         ]
                       ),
+
                       SizedBox(height: 5),
                       Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                       ElevatedButton.icon(

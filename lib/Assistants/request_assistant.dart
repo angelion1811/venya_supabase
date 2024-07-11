@@ -7,8 +7,8 @@ import '../infoHandler/app_info.dart';
 
 class RequestAssistant{
 
-  //static String _baseUrl ='https://venya-backend.vercel.app';
-  static String _baseUrl ='https://venya-backend.onrender.com';
+  static String _baseUrl ='https://venya-backend.vercel.app';
+  //static String _baseUrl ='https://venya-backend.onrender.com';
   //static String _baseUrl ='https://6639wp30-3000.use.devtunnels.ms/';
 
   static Future<dynamic> receiveRequest(String url) async {
@@ -73,6 +73,19 @@ class RequestAssistant{
         'Authorization': '${token}',
         'Accept':'application/json;'
       },
+    );
+  }
+
+  static Future<http.Response> saveRide(String token, data) {
+    print("saveRide ${data}");
+    return http.post(
+      Uri.parse('$_baseUrl/api/ride'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': '${token}',
+        'Accept': 'application/json;',
+      },
+      body: jsonEncode(data),
     );
   }
 }

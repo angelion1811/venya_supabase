@@ -34,7 +34,7 @@ class _PayFareAmountDialogState extends State<PayFareAmountDialog> {
           children: [
             SizedBox(height: 20,),
 
-            Text("Fare Amount".toUpperCase(),
+            Text("Tarifa a Pagar".toUpperCase(),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: darkTheme ? Colors.amber.shade400: Colors.white,
@@ -58,7 +58,7 @@ class _PayFareAmountDialogState extends State<PayFareAmountDialog> {
               Padding(
                 padding: EdgeInsets.all(10),
                 child: Text(
-                  "This is the total trip fare amount. Please pay it to the driver",
+                  "Este es el monto total de la tarifa del viaje. Por favor pague al conductor.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: darkTheme? Colors.amber.shade400:Colors.white,
@@ -73,16 +73,16 @@ class _PayFareAmountDialogState extends State<PayFareAmountDialog> {
                         backgroundColor: darkTheme ? Colors.amber.shade400 : Colors.white
                     ),
                     onPressed: (){
-                      Future.delayed(Duration(milliseconds: 10000), (){
+                      Future.delayed(const Duration(milliseconds: 10000), (){
                           Navigator.pop(context, "Cash Paid");
-                          Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
+                          //Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
                       });
                     },
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                            "Pay Cash",
+                            "Pagar en efectivo",
                           style: TextStyle(
                             fontSize: 20,
                             color: darkTheme ? Colors.black : Colors.blue,

@@ -179,7 +179,7 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
         body: ListView(
         padding: EdgeInsets.all(0),
         children: [
-          Image.asset(darkTheme? 'images/VenLogo_dark.jpg':'images/VenLogo.jpg' ),
+          Image.asset(darkTheme? 'images/logo_dark.png':'images/logo.png' ),
           SizedBox(height: 10,),
 
           Center(child:Text("Registro De Documentos",
