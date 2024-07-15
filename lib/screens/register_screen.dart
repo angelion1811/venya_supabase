@@ -30,7 +30,8 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
 
-  final nameTextEditingContentController = TextEditingController();
+  final namesTextEditingContentController = TextEditingController();
+  final surnamesTextEditingContentController = TextEditingController();
   final identificationNumberTextEditingContentController = TextEditingController();
   final emailTextEditingContentController = TextEditingController();
   final phoneTextEditingContentController = TextEditingController();
@@ -65,7 +66,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     //validate field of form;
     if (_formKey.currentState!.validate()) {
         Map userMap = {
-          'name': nameTextEditingContentController.text.trim(),
+          'names': namesTextEditingContentController.text.trim(),
+          'surnames': surnamesTextEditingContentController.text.trim(),
           'email': emailTextEditingContentController.text.trim(),
           'password': passwordTextEditingContentController.text.trim(),
           'identification_type': selectedIndentificationType,
@@ -144,7 +146,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       LengthLimitingTextInputFormatter(50)
                                     ],
                                     decoration: InputDecoration(
-                                        hintText: "Nombres y Apellidos",
+                                        hintText: "Nombres",
                                         hintStyle: TextStyle(
                                             color: Colors.grey
                                         ),
@@ -166,7 +168,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       }
                                     },
                                     onChanged: (text)=>setState(() {
-                                      nameTextEditingContentController.text = text;
+                                      namesTextEditingContentController.text = text;
+                                    })
+                                ),
+                                SizedBox(height: 10,),
+                                TextFormField(
+                                    inputFormatters:[
+                                      LengthLimitingTextInputFormatter(50)
+                                    ],
+                                    decoration: InputDecoration(
+                                        hintText: "Apellidos",
+                                        hintStyle: TextStyle(
+                                            color: Colors.grey
+                                        ),
+                                        filled: true,
+                                        fillColor: darkTheme? Colors.black45: Colors.grey.shade200,
+                                        border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(40),
+                                            borderSide: BorderSide(
+                                                width: 0,
+                                                style: BorderStyle.none
+                                            )
+                                        ),
+                                        prefixIcon: Icon(Icons.person, color: darkTheme? Colors.amber.shade400: Colors.grey,)
+                                    ),
+                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                    validator: (text){
+                                      if(defaultValidator(text)!= null){
+                                        return defaultValidator(text, maxLength: 100);
+                                      }
+                                    },
+                                    onChanged: (text)=>setState(() {
+                                      surnamesTextEditingContentController.text = text;
                                     })
                                 ),
                                 SizedBox(height: 10,),
@@ -174,7 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 DropdownButtonFormField(
                                   decoration: InputDecoration(
                                       hintText: "Tipo de indentificación",
-                                      prefixIcon: Icon(Icons.person, color: darkTheme?Colors.amber.shade400:Colors.grey),
+                                      prefixIcon: Icon(Icons.perm_identity, color: darkTheme?Colors.amber.shade400:Colors.grey),
                                       filled: true,
                                       fillColor: darkTheme ? Colors.black45: Colors.grey.shade200,
                                       border: OutlineInputBorder(
@@ -228,7 +261,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                 style: BorderStyle.none
                                             )
                                         ),
-                                        prefixIcon: Icon(Icons.person, color: darkTheme? Colors.amber.shade400: Colors.grey,)
+                                        prefixIcon: Icon(Icons.perm_identity_sharp, color: darkTheme? Colors.amber.shade400: Colors.grey,)
                                     ),
                                     autovalidateMode: AutovalidateMode.onUserInteraction,
                                     validator: (text){

@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 class UserModel {
   String? id;
   String? name;
+  String? surname;
   String? phone;
   String? email;
   String? address;
@@ -26,7 +27,8 @@ class UserModel {
 
   UserModel.fromSnapshot(DataSnapshot snapshot){
     id = snapshot.key;
-    name = (snapshot.value as dynamic)["name"];
+    name = (snapshot.value as dynamic)["names"];
+    surname = (snapshot.value as dynamic)["surnames"];
     phone = (snapshot.value as dynamic)["phone"];
     email = (snapshot.value as dynamic)["email"];
     address = (snapshot.value as dynamic)["address"];

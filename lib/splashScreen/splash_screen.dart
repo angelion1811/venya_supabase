@@ -39,8 +39,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
       dynamic res = await RequestAssistant.getProfile('$token');
 
-      log("llego aqui ${res.statusCode}");
-
       if(res.statusCode != 200){
         Provider.of<AppInfo>(context, listen: false).updateToken("");
         Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
@@ -84,7 +82,6 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     });
 
-
   }
   @override
   void initState() {
@@ -94,14 +91,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
   }
   Widget build(BuildContext context) {
+    bool darkTheme = MediaQuery.of(context).platformBrightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: darkTheme? Colors.black: Colors.white,
       body: Center(
-        child: Text('Ven Ya',
-          style: TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.bold
-          ),
-        ),
+        child:Image.asset(darkTheme? 'images/logo_dark.png':'images/logo.png' ),
       ),
     );
   }
