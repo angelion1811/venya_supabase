@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ven_app/global/global.dart';
+import 'package:ven_app/screens/frequent_questions_screen.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/profile_screen.dart';
+import 'package:ven_app/screens/terms_and_conditions_screen.dart';
 import 'package:ven_app/screens/trip_history_screen.dart';
 import 'package:ven_app/widgets/drawer_option.dart';
 
@@ -64,7 +66,7 @@ class DrawerScreen extends StatelessWidget {
                   Center(
                     child: Text(
                     //'user name',
-                      "${userModelCurrentInfo!.name!}",
+                      "${userModelCurrentInfo!.names!} ${userModelCurrentInfo!.surnames!}",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -177,19 +179,19 @@ class DrawerScreen extends StatelessWidget {
                   DrawerOption(
                     optionName: "Historial de viajes",
                     darkTheme: darkTheme,
-                    onTap: (){},
+                    onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (c)=>TripHistoryScreen())),
                   ),
                   Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                   DrawerOption(
                     optionName: "Preguntas frecuentes",
                     darkTheme: darkTheme,
-                    onTap: (){},
+                    onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (c)=>FrequentQuestionsScreen())),
                   ),
                   Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                   DrawerOption(
                     optionName: "Términos y condiciones",
                     darkTheme: darkTheme,
-                    onTap: (){},
+                    onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (c)=>TermsAndConditionsScreen())),
                   ),
                   Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                   DrawerOption(

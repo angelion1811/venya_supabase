@@ -128,7 +128,7 @@ class AssistantMethods {
   }
 
   static void readTripsKeysForOnlineUser(context){
-    FirebaseDatabase.instance.ref().child("All Ride Requests").orderByChild("userName").equalTo(userModelCurrentInfo!.name).once().then((snap){
+    FirebaseDatabase.instance.ref().child("All Ride Requests").orderByChild("userName").equalTo(userModelCurrentInfo!.names!).once().then((snap){
       if(snap.snapshot.value != null){
         print("readTripsKeysForOnlineUser");
 

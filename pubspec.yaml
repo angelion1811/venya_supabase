@@ -58,6 +58,7 @@ dependencies:
   firebase_app_check: ^0.3.0+1
   #test socket clients
   socket_io_client: ^2.0.3+1
+  webview_flutter: ^4.8.0
 
 dev_dependencies:
   flutter_test:
@@ -116,17 +117,17 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "images/logo.png"
+  image_path: "images/icon.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
-    image_path: "images/logo.png"
+    image_path: "images/icon.png"
     background_color: "#hexcode"
     theme_color: "#hexcode"
   windows:
     generate: true
-    image_path: "images/logo.png"
+    image_path: "images/icon.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "images/logo.png"
+    image_path: "images/icon.png"

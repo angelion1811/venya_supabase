@@ -181,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "${userModelCurrentInfo!.name!}",
+                      "${userModelCurrentInfo!.names!}",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold
@@ -189,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     IconButton(
                       onPressed: (){
-                        showUserNameDialogAlert(context, userModelCurrentInfo!.name!);
+                        showUserNameDialogAlert(context, userModelCurrentInfo!.names!);
                       },
                       icon: Icon(Icons.edit)
                     )

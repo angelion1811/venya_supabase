@@ -98,7 +98,7 @@ class _MainScreenState extends State<MainScreen> {
     initializeGeoFireListener();
     String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
     print("this is our address = "+humaneReableAddress);
-    userName = userModelCurrentInfo!.name!;
+    userName = userModelCurrentInfo!.names!;
     useEmail = userModelCurrentInfo!.email!;
     AssistantMethods.readTripsKeysForOnlineUser(context);
   }
@@ -343,7 +343,7 @@ class _MainScreenState extends State<MainScreen> {
       "origin": originLocationMap,
       "destination": destinationLocationMap,
       "time":DateTime.now().toString(),
-      "userName": userModelCurrentInfo!.name,
+      "userName": "${userModelCurrentInfo!.names} ${userModelCurrentInfo!.surnames}",
       "userPhone": userModelCurrentInfo!.phone,
       "originAddress": originLocation.locationName,
       "destinationAddress": destinationLocation.locationName,

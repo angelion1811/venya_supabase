@@ -114,7 +114,7 @@ class _MainScreenOldState extends State<MainScreenOld> {
     String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
     print("this is our address = "+humaneReableAddress);
 
-    userName = userModelCurrentInfo!.name!;
+    userName = userModelCurrentInfo!.names!;
     useEmail = userModelCurrentInfo!.email!;
 
     //
@@ -403,7 +403,7 @@ class _MainScreenOldState extends State<MainScreenOld> {
       "origin": originLocationMap,
       "destination": destinationLocationMap,
       "time":DateTime.now().toString(),
-      "userName": userModelCurrentInfo!.name,
+      "userName": userModelCurrentInfo!.names,
       "userPhone": userModelCurrentInfo!.phone,
       "originAddress": originLocation.locationName,
       "destinationAddress": destinationLocation.locationName,
