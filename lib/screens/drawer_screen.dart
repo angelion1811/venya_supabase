@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/screens/frequent_questions_screen.dart';
 import 'package:ven_app/screens/login_screen.dart';
+import 'package:ven_app/screens/news_screen.dart';
 import 'package:ven_app/screens/profile_screen.dart';
 import 'package:ven_app/screens/terms_and_conditions_screen.dart';
 import 'package:ven_app/screens/trip_history_screen.dart';
@@ -195,10 +196,18 @@ class DrawerScreen extends StatelessWidget {
                   ),
                   Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                   DrawerOption(
+                    optionName: "Noticias",
+                    darkTheme: darkTheme,
+                    onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (c)=>NewsScreen())),
+                  ),
+                  /*
+                  DrawerOption(
                     optionName: "Configuración",
                     darkTheme: darkTheme,
                     onTap: (){},
                   ),
+
+                   */
                   Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                   DrawerOption(
                     optionName: "Soporte",
