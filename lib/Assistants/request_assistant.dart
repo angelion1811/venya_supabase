@@ -11,8 +11,11 @@ class RequestAssistant{
   //static String _baseUrl ='https://venya-backend.onrender.com';
   //static String _baseUrl ='https://6639wp30-3000.use.devtunnels.ms/';
 
-  static Future<dynamic> receiveRequest(String url) async {
-    http.Response httpResponse = await http.get(Uri.parse(url));
+  static Future<dynamic> receiveRequest(String url, {Map<String, String>? headers}) async {
+    http.Response httpResponse = await http.get(
+      Uri.parse(url),
+      headers: headers,
+    );
 
     try{
       if(httpResponse.statusCode == 200){ //exito

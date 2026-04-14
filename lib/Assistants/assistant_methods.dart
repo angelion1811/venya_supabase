@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/request_assistant.dart';
+import 'package:ven_app/Services/supabase_service.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/global/map_key.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
@@ -37,18 +38,35 @@ class AssistantMethods {
 
   static Future<String> searchAddressForGeographicCoordinates( double clatitude, double clongitude , context) async {
 
-    //String apiUrl = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$mapKey';
+    // Nominatim reverse geocoding - requiere User-Agent con email del usuario
+    final userEmail = SupabaseService.currentUser?.email ?? 'anonimo@venapp.com';
     String apiUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=${clatitude}&lon=${clongitude}';
     String humanReadableAddress = "";
-    var requestResponse = await RequestAssistant.receiveRequest(apiUrl);
-    if(requestResponse != "Error Ocurred. Failed. No Response."){
-      humanReadableAddress = requestResponse['display_name'];
-      Directions userPickAddress = Directions();
-      userPickAddress.locationLatitude = clatitude;
-      userPickAddress.locationLongitude = clongitude;
-      userPickAddress.locationName = humanReadableAddress;
-      Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(userPickAddress);
+
+    try {
+      var requestResponse = await RequestAssistant.receiveRequest(
+        apiUrl,
+        headers: {
+          'User-Agent': 'VenApp/1.0 ($userEmail)',
+        },
+      );
+
+      if(requestResponse != "Error Ocurred. Failed. No Response."){
+        humanReadableAddress = requestResponse['display_name'] ?? '';
+        print("Dirección obtenida de Nominatim: $humanReadableAddress");
+
+        Directions userPickAddress = Directions();
+        userPickAddress.locationLatitude = clatitude;
+        userPickAddress.locationLongitude = clongitude;
+        userPickAddress.locationName = humanReadableAddress;
+        Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(userPickAddress);
+      } else {
+        print("Error: Nominatim no respondió");
+      }
+    } catch (e) {
+      print("Error en reverse geocoding: $e");
     }
+
     return humanReadableAddress;
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ven_app/Assistants/request_assistant.dart';
-import 'package:ven_app/global/map_key.dart';
+import 'package:ven_app/Services/supabase_service.dart';
 import 'package:ven_app/models/predicted_places.dart';
 import 'package:ven_app/widgets/place_prediction_tile.dart';
 
@@ -17,19 +17,26 @@ class _SearchPlacesScreenState extends State<SearchPlacesScreen> {
   List<PredictedPlaces> placesPredictedList = [];
   findPlaceAutoComplete(String inputText) async {
     if(inputText.length > 1){
-      //String urlAutoCompleteSearch = "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$inputText&keys=$mapKey&components=country:BD";
-      String urlAutoCompleteSearch = 'https://nominatim.openstreetmap.org/search?q=${inputText}&limit=20&format=json&addressdetails=1';
+      // Nominatim requiere User-Agent header - usamos el email del usuario autenticado
+      final userEmail = SupabaseService.currentUser?.email ?? 'anonimo@venapp.com';
+      String urlAutoCompleteSearch = 'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(inputText)}&limit=20&format=json&addressdetails=1';
       print('urlAutoCompleteSearch');
       print(urlAutoCompleteSearch);
+      print('User-Agent: VenApp/1.0 ($userEmail)');
 
-      var responseApiAutoCompleteSearch = await RequestAssistant.receiveRequest(urlAutoCompleteSearch);
+      var responseApiAutoCompleteSearch = await RequestAssistant.receiveRequest(
+        urlAutoCompleteSearch,
+        headers: {
+          'User-Agent': 'VenApp/1.0 ($userEmail)', // Nominatim requiere esto - identifica al usuario
+        },
+      );
 
       if(responseApiAutoCompleteSearch == "Error Ocurred. Failed. No Response."){
         return;
       }
       print('responseApiAutoCompleteSearch');
       print(responseApiAutoCompleteSearch.toString());
-      if(responseApiAutoCompleteSearch!.length > 0){
+      if(responseApiAutoCompleteSearch != null && responseApiAutoCompleteSearch is List && responseApiAutoCompleteSearch.length > 0){
         var placePredictions = responseApiAutoCompleteSearch;
         var placePredictionsList = (placePredictions as List).map((jsonData) => PredictedPlaces.fromJson(jsonData)).toList();
         setState(() { placesPredictedList = placePredictionsList; });

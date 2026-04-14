@@ -14,11 +14,27 @@ class PredictedPlaces{
   });
 
   PredictedPlaces.fromJson(Map<String, dynamic> jsonData){
-    place_id = (jsonData["place_id"]).toString();
-    main_text = jsonData["name"];
-    secondary_text = jsonData["display_name"];
-    latitude = double.parse(jsonData['lat']);
-    longitude = double.parse(jsonData['lon']);
+    // Nominatim usa 'place_id' como entero, lo convertimos a string
+    place_id = jsonData["place_id"]?.toString() ?? jsonData["osm_id"]?.toString() ?? '';
+
+    // 'name' puede ser null en Nominatim, usar display_name como fallback
+    main_text = jsonData["name"]?.toString() ?? jsonData["display_name"]?.toString()?.split(",")?.first ?? 'Sin nombre';
+
+    // display_name es la dirección completa
+    secondary_text = jsonData["display_name"]?.toString() ?? '';
+
+    // Parsear lat/lon con manejo de errores
+    try {
+      latitude = jsonData['lat'] != null ? double.parse(jsonData['lat'].toString()) : null;
+    } catch (e) {
+      latitude = null;
+    }
+
+    try {
+      longitude = jsonData['lon'] != null ? double.parse(jsonData['lon'].toString()) : null;
+    } catch (e) {
+      longitude = null;
+    }
   }
 
 }

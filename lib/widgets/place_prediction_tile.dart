@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-import 'package:ven_app/Assistants/request_assistant.dart';
 import 'package:ven_app/global/global.dart';
-import 'package:ven_app/global/map_key.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
 import 'package:ven_app/models/predicted_places.dart';
 import 'package:ven_app/widgets/progress_dialog.dart';
@@ -24,35 +23,39 @@ class PlacePredictionTileDesign extends StatefulWidget {
 class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
 
   getPlaceDirectionDetails(PredictedPlaces? cPredictedPlaces, String? placeId, context) async {
+    if(cPredictedPlaces == null || cPredictedPlaces.latitude == null || cPredictedPlaces.longitude == null){
+      Fluttertoast.showToast(msg: "Error: Ubicación inválida");
+      return;
+    }
+
     showDialog(
         context: context,
         builder: (BuildContext context) => ProgressDialog(
-          message: "Setting up Drop-off, Please wait....",
+          message: "Configurando ubicación, por favor espere....",
         )
     );
     print('cPredictedPlaces');
-    print(cPredictedPlaces!.place_id);
-    Navigator.pop(context);
-    if(cPredictedPlaces == null){
-      return;
-    }
+    print(cPredictedPlaces.place_id);
+
     Directions directions = Directions();
-    directions.locationName = cPredictedPlaces.secondary_text;
-    directions.locationId = cPredictedPlaces.place_id;
+    directions.locationName = cPredictedPlaces.secondary_text ?? cPredictedPlaces.main_text ?? 'Ubicación';
+    directions.locationId = cPredictedPlaces.place_id ?? '';
     directions.locationLatitude = cPredictedPlaces.latitude;
     directions.locationLongitude = cPredictedPlaces.longitude;
+
+    Navigator.pop(context);
+
     if(widget.place != null) {
       if(widget.place == 'origin') {
         Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(
             directions);
-        //setState(() {userDropOffAddress = directions.locationName!});
 
         Navigator.pop(context, "obtainedPickup");
       } else {
         Provider.of<AppInfo>(context, listen: false).updateDroffLocationAddress(
             directions);
         setState(() {
-          userDropOffAddress = directions.locationName!;
+          userDropOffAddress = directions.locationName ?? '';
         });
 
         Navigator.pop(context, "obtainedDropoff");
@@ -88,9 +91,15 @@ class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
   Widget build(BuildContext context) {
     bool darkTheme = MediaQuery.of(context).platformBrightness == Brightness.dark;
 
+    // Manejar caso de datos nulos
+    final place = widget.predictedPlaces;
+    if (place == null) {
+      return SizedBox.shrink();
+    }
+
     return ElevatedButton(
         onPressed: (){
-          getPlaceDirectionDetails(widget.predictedPlaces, widget.predictedPlaces!.place_id, context);
+          getPlaceDirectionDetails(place, place.place_id, context);
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: darkTheme? Colors.black: Colors.white
@@ -108,7 +117,7 @@ class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.predictedPlaces!.main_text!,
+                    place.main_text ?? 'Sin nombre',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 15,
@@ -116,11 +125,11 @@ class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
                     )
                   ),
                   Text(
-                      widget.predictedPlaces!.secondary_text!,
+                      place.secondary_text ?? '',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
-                        color: darkTheme? Colors.amber.shade400 : Colors.blue,
+                        fontSize: 14,
+                        color: darkTheme? Colors.grey.shade400 : Colors.grey,
                       )
                   )
                 ],
