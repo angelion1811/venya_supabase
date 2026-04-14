@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
-import 'package:ven_app/Assistants/request_assistant.dart';
+import 'package:ven_app/Services/supabase_service.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/screens/forgot_password_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
@@ -35,29 +35,27 @@ class _LoginScreenState extends State<LoginScreen> {
   void _submit() async {
     //validate field of form;
     if(_formKey.currentState!.validate()){
-      Map userLogin = {
+      Map<String, dynamic> userLogin = {
         'email': emailTextEditingContentController.text.trim(),
         'password': passwordTextEditingContentController.text.trim()
       };
 
-      var res = await RequestAssistant.loginUser(userLogin);
-      if(res.statusCode == 404){
+      var res = await SupabaseService.loginUser(userLogin);
+      if(res['statusCode'] == 404){
         Fluttertoast.showToast(msg: "Usuario Invalido");
         setState(()=> isSubmitted = false);
-      } else if(res.statusCode == 400) {
-        var body = jsonDecode(res.body) as Map;
-        for (String key in body["errors"].keys) {
-          for (String value in body["errors"][key]) {
-            //print("$key: ${responseBody["errors"][key][value]}");
+      } else if(res['statusCode'] == 400) {
+        var errors = res['errors'] as Map<String, dynamic>;
+        for (String key in errors.keys) {
+          for (String value in errors[key]) {
             await Fluttertoast.showToast(msg: "$key: ${value}");
           }
         }
         setState(()=> isSubmitted = false);
-      } else if(res.statusCode == 200){
+      } else if(res['statusCode'] == 200){
         Fluttertoast.showToast(msg: "Inicio de sesión de usuario exitosamente");
-        var body = jsonDecode(res.body) as Map;
-        Provider.of<AppInfo>(context, listen: false).updateToken(body['token']);
-        userModelCurrentInfo = UserModel.fromJson(body['data']);
+        Provider.of<AppInfo>(context, listen: false).updateToken(res['token'] ?? '');
+        userModelCurrentInfo = SupabaseService.userRecordToModel(res['data']);
         Navigator.push(context, MaterialPageRoute(builder: (c) => SplashScreen()));
       } else {
         Fluttertoast.showToast(msg: "error");

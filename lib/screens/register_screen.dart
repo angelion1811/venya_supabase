@@ -10,7 +10,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
-import 'package:ven_app/Assistants/request_assistant.dart';
+import 'package:ven_app/Services/supabase_service.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/models/user_model.dart';
 import 'package:ven_app/screens/login_screen.dart';
@@ -65,7 +65,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _submit() async {
     //validate field of form;
     if (_formKey.currentState!.validate()) {
-        Map userMap = {
+        Map<String, dynamic> userMap = {
           'names': namesTextEditingContentController.text.trim(),
           'surnames': surnamesTextEditingContentController.text.trim(),
           'email': emailTextEditingContentController.text.trim(),
@@ -77,27 +77,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'phone': phoneTextEditingContentController.text.trim()
         };
 
-        dynamic res = await RequestAssistant.registerUser(userMap);
+        dynamic res = await SupabaseService.registerUser(userMap);
         print("result get");
-        print(res.statusCode);
-        print(res.body);
+        print(res['statusCode']);
+        print(res);
 
-        if(res.statusCode == 400) {
-          var body = jsonDecode(res.body) as Map;
-          for (String key in body["errors"].keys) {
-            for (String value in body["errors"][key]) {
-              //print("$key: ${responseBody["errors"][key][value]}");
+        if(res['statusCode'] == 400) {
+          var errors = res['errors'] as Map<String, dynamic>;
+          for (String key in errors.keys) {
+            for (String value in errors[key]) {
               await Fluttertoast.showToast(msg: "$key: ${value}");
             }
           }
           setState(()=> isSubmitted = false);
         }
 
-        if(res.statusCode == 200){
-          var body = jsonDecode(res.body) as Map;
-          Provider.of<AppInfo>(context, listen: false).updateToken(body['token']);
+        if(res['statusCode'] == 200){
+          Provider.of<AppInfo>(context, listen: false).updateToken(res['token'] ?? '');
 
-          userModelCurrentInfo = UserModel.fromJson(body['data']);
+          userModelCurrentInfo = SupabaseService.userRecordToModel(res['data']);
 
           print('userModelCurrentInfo');
           print(userModelCurrentInfo!.id);

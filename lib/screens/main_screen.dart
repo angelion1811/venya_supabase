@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/Assistants/geofire_assistant.dart';
-import 'package:ven_app/Assistants/request_assistant.dart';
+import 'package:ven_app/Services/supabase_service.dart';
 import 'package:ven_app/Helpers/custom_functions.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
@@ -327,19 +327,19 @@ class _MainScreenState extends State<MainScreen> {
     var originLocation = Provider.of<AppInfo>(context, listen: false).userPickUpLocation;
     var destinationLocation = Provider.of<AppInfo>(context, listen: false).userDropOffLocation;
 
-    Map originLocationMap = {
+    Map<String, dynamic> originLocationMap = {
       //"key": value"
       "latitude": originLocation!.locationLatitude.toString(),
       "longitude": originLocation.locationLongitude.toString(),
     };
 
-    Map destinationLocationMap = {
+    Map<String, dynamic> destinationLocationMap = {
       //"key": value"
       "latitude": destinationLocation!.locationLatitude.toString(),
       "longitude": destinationLocation.locationLongitude.toString(),
     };
 
-    Map rideInformationMap = {
+    Map<String, dynamic> rideInformationMap = {
       "origin": originLocationMap,
       "destination": destinationLocationMap,
       "time":DateTime.now().toString(),
@@ -402,9 +402,8 @@ class _MainScreenState extends State<MainScreen> {
                 Navigator.push(context, MaterialPageRoute(builder: (c)=> RateDriverScreen(
                   assignedDriverId: assignedDriverId,
                 )));
-                String tokenReq = Provider.of<AppInfo>(context, listen: false).token;
                 rideInformationMap['_id'] = referenceRideRequest!.key;
-                var responseRequest = await RequestAssistant.saveRide(tokenReq, rideInformationMap);
+                var responseRequest = await SupabaseService.saveRide(rideInformationMap);
                 referenceRideRequest!.onDisconnect();
                 tripRideRequestInfoStreamSubscription!.cancel();
                 referenceRideRequest!.remove();
@@ -421,7 +420,7 @@ class _MainScreenState extends State<MainScreen> {
     searchNearestOnlineDrivers(selectedVehicleType, rideInformationMap);
   }
 
-  searchNearestOnlineDrivers(String selectedVehicleType, Map rideInformationMap) async {
+  searchNearestOnlineDrivers(String selectedVehicleType, Map<String, dynamic> rideInformationMap) async {
     showUISearchingForDriversContainer();
 
     if(onlineNearByAvailableDriversList.length == 0){
@@ -489,9 +488,8 @@ class _MainScreenState extends State<MainScreen> {
               assignedDriverId: assignedDriverId,
             )));
 
-            String tokenReq = Provider.of<AppInfo>(context, listen: false).token;
             rideInformationMap['_id'] = referenceRideRequest!.key;
-            var responseRequest = await RequestAssistant.saveRide(tokenReq, rideInformationMap);
+            var responseRequest = await SupabaseService.saveRide(rideInformationMap);
             referenceRideRequest!.onDisconnect();
             streamRideRequestDriverLocation!.cancel();
             streamRideRequestStatus!.cancel();

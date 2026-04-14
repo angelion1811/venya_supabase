@@ -6,13 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
+import 'package:ven_app/Services/supabase_service.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/models/user_model.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
 import 'package:ven_app/screens/register_documents_screen.dart';
 
-import '../Assistants/request_assistant.dart';
 import '../infoHandler/app_info.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -26,28 +26,26 @@ class _SplashScreenState extends State<SplashScreen> {
 
   startTimer(){
     Timer(Duration(seconds: 3), ()async{
-      var token = Provider
-          .of<AppInfo>(context, listen: false)
-          .token;
-
-      log('token: ${token}');
-
-      if (token.isEmpty) {
+      // Verificar si hay sesión activa en Supabase
+      if (!SupabaseService.isAuthenticated) {
         Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
         return;
       }
 
-      dynamic res = await RequestAssistant.getProfile('$token');
+      // Actualizar token en AppInfo
+      Provider.of<AppInfo>(context, listen: false).updateToken(SupabaseService.accessToken ?? '');
 
-      if(res.statusCode != 200){
+      dynamic res = await SupabaseService.getProfile();
+
+      if(res['statusCode'] != 200){
+        await SupabaseService.logout();
         Provider.of<AppInfo>(context, listen: false).updateToken("");
         Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
         return;
       }
       try {
-        var body = jsonDecode(res.body) as Map;
-        log(res.body);
-        userModelCurrentInfo = UserModel.fromJson(body['data']);
+        log('Perfil obtenido: ${res['data']}');
+        userModelCurrentInfo = SupabaseService.userRecordToModel(res['data']);
 
         log('$userModelCurrentInfo');
 
@@ -58,12 +56,14 @@ class _SplashScreenState extends State<SplashScreen> {
         }
         if (userModelCurrentInfo!.blocked == true) {
           Fluttertoast.showToast(msg: "Usuario Bloquedo");
+          await SupabaseService.logout();
           Provider.of<AppInfo>(context, listen: false).updateToken("");
           Navigator.push(
               context, MaterialPageRoute(builder: (c) => LoginScreen()));
           return;
         }
         if (userModelCurrentInfo!.verified == false) {
+          await SupabaseService.logout();
           Provider.of<AppInfo>(context, listen: false).updateToken("");
           Fluttertoast.showToast(msg: "Usuario no verificado");
           Navigator.push(
@@ -73,11 +73,12 @@ class _SplashScreenState extends State<SplashScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (c) => MainScreen()));
       } catch(e){
         log('error $e');
-         Provider.of<AppInfo>(context, listen: false).updateToken("");
-          Fluttertoast.showToast(msg: "Error");
-          Navigator.push(
-              context, MaterialPageRoute(builder: (c) => LoginScreen()));
-          return;
+        await SupabaseService.logout();
+        Provider.of<AppInfo>(context, listen: false).updateToken("");
+        Fluttertoast.showToast(msg: "Error");
+        Navigator.push(
+            context, MaterialPageRoute(builder: (c) => LoginScreen()));
+        return;
 
       }
     });

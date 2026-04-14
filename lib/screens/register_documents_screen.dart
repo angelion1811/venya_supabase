@@ -2,23 +2,17 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'dart:async';
-import 'package:email_validator/email_validator.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/infoHandler/app_info.dart';
-import 'package:ven_app/screens/forgot_password_screen.dart';
 import 'package:ven_app/screens/login_screen.dart';
-import 'package:ven_app/screens/main_screen.dart';
 import 'package:ven_app/widgets/file_selector.dart';
 
-import '../Assistants/request_assistant.dart';
+import '../Services/supabase_service.dart';
 import '../models/user_model.dart';
 import '../splashScreen/splash_screen.dart';
 
@@ -49,40 +43,38 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
     if(_formKey.currentState!.validate()){
       try {
 
-      Map documents = {
+      Map<String, dynamic> documents = {
         "imageSelfie": urlOfUploadedImageSelfie,
         "imageDocument": urlOfUploadedImageDocument,
         "imageSelfieWithDocument": urlOfUploadedImageSelfieWithDocument,
       };
 
-      String tokenReq = Provider.of<AppInfo>(context, listen: false).token;
-      log('$tokenReq');
-      dynamic res = await RequestAssistant.addUserDocuments(tokenReq,documents);
+      dynamic res = await SupabaseService.addUserDocuments(documents);
       print("result put registerUser");
       print('res.statusCode');
-      await Fluttertoast.showToast(msg: "Estatus: ${res.statusCode}");
-      if(res.statusCode == 400) {
-        var body = jsonDecode(res.body) as Map;
-        for (String key in body["errors"].keys) {
-          for (String value in body["errors"][key]) {
+      await Fluttertoast.showToast(msg: "Estatus: ${res['statusCode']}");
+      if(res['statusCode'] == 400) {
+        var errors = res['errors'] as Map<String, dynamic>;
+        for (String key in errors.keys) {
+          for (String value in errors[key]) {
             await Fluttertoast.showToast(msg: "$key: ${value}");
           }
         }
         setState(()=> isSubmitted = false);
-      } else if(res.statusCode == 201){
-        log("fhgfgh");
+      } else if(res['statusCode'] == 201){
+        log("Documentos guardados");
         await Fluttertoast.showToast(msg: "Documentos de Indetificacion guardados, Felicitaciones");
         Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
-      } else if(res.statusCode == 401){
+      } else if(res['statusCode'] == 401){
         Provider.of<AppInfo>(context, listen: false).updateToken('');
         Navigator.push(context, MaterialPageRoute(builder: (c)=>SplashScreen()));
       } else {
-        await Fluttertoast.showToast(msg: "Estatus: ${res.statusCode}");
+        await Fluttertoast.showToast(msg: "Estatus: ${res['statusCode']}");
         setState(()=> isSubmitted = false);
       }
       } catch(e){
         log('Error: $e');
-        Fluttertoast.showToast(msg: "error");
+        Fluttertoast.showToast(msg: "error aca  $e.message");
         setState(()=> isSubmitted = false);
       }
 
@@ -115,12 +107,24 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
     }
   }
 
-  Future<String> uploadImageToStorage(XFile? xFile) async {
+  Future<String> uploadImageToStorage(XFile? xFile, String documentType) async {
+    if (xFile == null) return '';
+
     String imageIDName = DateTime.now().millisecondsSinceEpoch.toString();
-    Reference referenceImage = FirebaseStorage.instance.ref().child("Images").child(imageIDName);
-    UploadTask uploadTask = referenceImage.putFile(File(xFile!.path));
-    TaskSnapshot snapshot = await uploadTask;
-    return snapshot.ref.getDownloadURL();
+    String fileName = '${documentType}_$imageIDName.jpg';
+
+    final result = await SupabaseService.uploadFile(
+      file: File(xFile.path),
+      bucketName: 'user-documents',
+      folderPath: 'documents',
+      fileName: fileName,
+    );
+
+    if (result['success'] == true) {
+      return result['url'] as String;
+    } else {
+      throw Exception(result['message'] ?? 'Error al subir imagen');
+    }
   }
 
   uploadImagesToStorage() async {
@@ -145,10 +149,10 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
     }
 
     try{
-      urlOfUploadedImageSelfie  = await uploadImageToStorage(imageSelfie);
-      print("aqui no hay error");
-      urlOfUploadedImageDocument =  await uploadImageToStorage(imageDocument);
-      urlOfUploadedImageSelfieWithDocument = await uploadImageToStorage(imageSelfieWithDocument);
+      urlOfUploadedImageSelfie  = await uploadImageToStorage(imageSelfie, 'selfie');
+      print("Selfie subida exitosamente");
+      urlOfUploadedImageDocument =  await uploadImageToStorage(imageDocument, 'document');
+      urlOfUploadedImageSelfieWithDocument = await uploadImageToStorage(imageSelfieWithDocument, 'selfie_with_document');
       Fluttertoast.showToast(msg: "Foto de perfil con documento de identidad cargada");
       setState((){
         urlOfUploadedImageSelfie;
@@ -160,7 +164,7 @@ class _RegisterScreenState extends State<RegisterDocumentsScreen> {
 
     } catch(e){
       log('Error: $e');
-      Fluttertoast.showToast(msg: "error");
+      Fluttertoast.showToast(msg: "error to storage $e");
       setState(()=> isSubmitted = false);
     }
 
