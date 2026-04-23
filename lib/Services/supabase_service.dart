@@ -528,4 +528,20 @@ class SupabaseService {
       };
     }
   }
+
+  // ========== FUNCTIONS ==========
+
+  /// Invoca una función de Supabase (Edge Function)
+  static Future<FunctionResponse> invokeFunction(String functionName, {Map<String, dynamic>? body}) async {
+    try {
+      final response = await client.functions.invoke(
+        functionName,
+        body: body,
+      );
+      return response;
+    } catch (error) {
+      log('Error invoking function $functionName: $error');
+      rethrow;
+    }
+  }
 }

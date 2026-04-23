@@ -108,7 +108,7 @@ class AssistantMethods {
     return double.parse(totalFareAmount.toStringAsFixed(1));
   }
 
-  static sendNotificationToDriverNow(String deviceRegistrationToken, String userRideRequestId, context) async {
+  static sendNotificationToDriverNowOld(String deviceRegistrationToken, String userRideRequestId, context) async {
     print("sendNotificationToDriverNow");
     String destinationAddress = userDropOffAddress;
 
@@ -144,6 +144,39 @@ class AssistantMethods {
     );
     
   }
+
+  static Future<void> sendNotificationToDriverNow(
+    String deviceRegistrationToken,
+    String userRideRequestId,
+    context,
+  ) async {
+    print("sendNotificationToDriverNow");
+    String destinationAddress = userDropOffAddress;
+
+    try {
+      // Invoke the Supabase Edge Function which handles OAuth2 token generation
+      // and calls the FCM HTTP v1 API securely server-side.
+      final response = await SupabaseService.invokeFunction(
+        'send-notification',
+        body: {
+          'deviceToken': deviceRegistrationToken,
+          'title': 'Solicitud de viaje',
+          'body': 'Destino: $destinationAddress',
+          'data': {
+            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+            'id': '1',
+            'status': 'done',
+            'rideRequestId': userRideRequestId,
+          },
+        },
+      );
+
+      print("Notification Edge Function response: ${response.data}");
+    } catch (e) {
+      print("Error sending notification: $e");
+    }
+  }
+
 
   static void readTripsKeysForOnlineUser(context){
     FirebaseDatabase.instance.ref().child("All Ride Requests").orderByChild("userName").equalTo(userModelCurrentInfo!.names!).once().then((snap){
