@@ -148,10 +148,12 @@ class AssistantMethods {
   static Future<void> sendNotificationToDriverNow(
     String deviceRegistrationToken,
     String userRideRequestId,
-    context,
-  ) async {
+    context, {
+    String destinationAddress = '',
+  }) async {
     print("sendNotificationToDriverNow");
-    String destinationAddress = userDropOffAddress;
+    // Fallback to global if not passed explicitly
+    final address = destinationAddress.isNotEmpty ? destinationAddress : userDropOffAddress;
 
     try {
       // Invoke the Supabase Edge Function which handles OAuth2 token generation
@@ -161,7 +163,7 @@ class AssistantMethods {
         body: {
           'deviceToken': deviceRegistrationToken,
           'title': 'Solicitud de viaje',
-          'body': 'Destino: $destinationAddress',
+          'body': 'Destino: $address',
           'data': {
             'click_action': 'FLUTTER_NOTIFICATION_CLICK',
             'id': '1',

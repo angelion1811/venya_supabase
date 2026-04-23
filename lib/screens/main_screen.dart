@@ -448,7 +448,12 @@ class _MainScreenState extends State<MainScreen> {
     for(int i = 0; i < driversList.length; i++){
       if(driversList[i]["car_details"]["type"] == selectedVehicleType && driversList[i]["token"] != null){
         Fluttertoast.showToast(msg: "Notification a user ${i} y es el driver ${driversList[i]["token"]}");
-        AssistantMethods.sendNotificationToDriverNow(driversList[i]["token"], referenceRideRequest!.key!, context);
+        AssistantMethods.sendNotificationToDriverNow(
+          driversList[i]["token"],
+          referenceRideRequest!.key!,
+          context,
+          destinationAddress: rideInformationMap["destinationAddress"] ?? '',
+        );
       }
     }
     //toast de notificacion enviada
