@@ -621,7 +621,7 @@ class _MainScreenState extends State<MainScreen> {
         return;
       }
 
-      setState(()=> driverRideStatus = "Yendo hacia el destino: "+directionDetailsInfo.duration_text.toString());
+      setState(()=> driverRideStatus = "Yendo hacia el destino: ${((directionDetailsInfo.duration_value!)/60).toStringAsFixed(0)} minutos");
 
       requestPositionInfo = true;
     }
