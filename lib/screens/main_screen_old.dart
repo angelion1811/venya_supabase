@@ -347,8 +347,8 @@ class _MainScreenOldState extends State<MainScreenOld> {
 
   void showSuggestedRidesContainer(){
     setState(() {
-      suggestedRidesContainerHeight = 400;
-      bottonPaddingOfMap = 400;
+      suggestedRidesContainerHeight = 500;
+      bottonPaddingOfMap = 500;
     });
   }
   /*

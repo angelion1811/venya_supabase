@@ -103,9 +103,9 @@ class AssistantMethods {
     double timeTravelledFareAmountPerMinute = (directionDetailsInfo.duration_value! /60) * 0.1;
     double distanceTraveledFareAmountPerKilometer = (directionDetailsInfo.distance_value!/ 1000) * 0.1;
     //usd
-    double totalFareAmount = timeTravelledFareAmountPerMinute+distanceTraveledFareAmountPerKilometer;
+    double totalFareAmount = timeTravelledFareAmountPerMinute + distanceTraveledFareAmountPerKilometer;
 
-    return double.parse(totalFareAmount.toStringAsFixed(1));
+    return double.parse((totalFareAmount).toStringAsFixed(2));
   }
 
   static sendNotificationToDriverNowOld(String deviceRegistrationToken, String userRideRequestId, context) async {

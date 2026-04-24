@@ -80,6 +80,7 @@ class _MainScreenState extends State<MainScreen> {
   BitmapDescriptor? activeNearbyIcon;
   DatabaseReference? referenceRideRequest;
   String selectedVehicleType = "";
+  String estimatedFare = "0.00";
   String driverRideStatus = "Driver is coming";
   StreamSubscription<DatabaseEvent>? tripRideRequestInfoStreamSubscription;
   StreamSubscription<DatabaseEvent>? streamRideRequestStatus;
@@ -87,6 +88,8 @@ class _MainScreenState extends State<MainScreen> {
   List<ActiveNearByAvailableDrivers> onlineNearByAvailableDriversList = [];
   String userRideRequestStatus = "";
   bool requestPositionInfo = true;
+  // Oferta de tarifa que el pasajero puede ingresar manualmente
+  final TextEditingController _fareController = TextEditingController();
 
 
   locateUserPosition() async {
@@ -306,8 +309,8 @@ class _MainScreenState extends State<MainScreen> {
 
   void showSuggestedRidesContainer(){
     setState(() {
-      suggestedRidesContainerHeight = 400;
-      bottonPaddingOfMap = 400;
+      suggestedRidesContainerHeight = 500;
+      bottonPaddingOfMap = 500;
     });
   }
 
@@ -339,6 +342,9 @@ class _MainScreenState extends State<MainScreen> {
       "longitude": destinationLocation.locationLongitude.toString(),
     };
 
+    // Si el pasajero dejó el campo vacío, guardamos cadena vacía (el conductor verá el estimado)
+    final String fareOffer = _fareController.text.trim();
+
     Map<String, dynamic> rideInformationMap = {
       "origin": originLocationMap,
       "destination": destinationLocationMap,
@@ -348,7 +354,9 @@ class _MainScreenState extends State<MainScreen> {
       "originAddress": originLocation.locationName,
       "destinationAddress": destinationLocation.locationName,
       "status":"waiting",
-      "driverId":"-"
+      "driverId":"-",
+      "offeredFare": fareOffer,  // oferta del pasajero (vacía si no se ingresó)
+      "estimatedFare": estimatedFare, // tarifa estimada por el sistema
     };
 
     referenceRideRequest!.set(rideInformationMap);
@@ -670,6 +678,7 @@ class _MainScreenState extends State<MainScreen> {
       selectedVehicleType='';
       searchingForDriverContainerHeight = 0;
       suggestedRidesContainerHeight = 0;
+      _fareController.clear();
     });
   }
 
@@ -677,6 +686,12 @@ class _MainScreenState extends State<MainScreen> {
   void initState(){
     super.initState();
     checkIfLocationPermissionAllowed();
+  }
+
+  @override
+  void dispose() {
+    _fareController.dispose();
+    super.dispose();
   }
 
   @override
@@ -977,7 +992,10 @@ class _MainScreenState extends State<MainScreen> {
                               vehicleTypeString: "Carro",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1)}'
                                   : "",
-                              onTap: ()=>setState(()=>selectedVehicleType = "Car"),
+                              onTap: ()=>setState((){
+                                selectedVehicleType = "Car";
+                                estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1).toStringAsFixed(2)}';
+                                }),
                             ),
                             const SizedBox(width: 5,),
                             CardVehicleType(
@@ -989,7 +1007,10 @@ class _MainScreenState extends State<MainScreen> {
                               vehicleTypeString: "CNG",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}'
                                   : "",
-                              onTap: ()=>setState(()=>selectedVehicleType = "CNG"),
+                              onTap: ()=>setState((){
+                                selectedVehicleType = "CNG";
+                                estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}';
+                                }),
                             ),
                             const SizedBox(width: 5,),
                             CardVehicleType(
@@ -1001,12 +1022,55 @@ class _MainScreenState extends State<MainScreen> {
                               vehicleTypeString: "Moto",
                               amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}'
                                   : "",
-                              onTap: ()=>setState(()=>selectedVehicleType = "Bike"),
+                              onTap: ()=>setState((){
+                                selectedVehicleType = "Bike";
+                                estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}';
+                                }),
                             )
                           ],
                         ),
 
-                        const SizedBox(height: 20,),
+                        const SizedBox(height: 16),
+
+                        // ── Oferta de tarifa opcional ──────────────────────────
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.attach_money,
+                              color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _fareController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  hintText: tripDirectionDetailsInfo != null
+                                      ? 'Estimado: \$ $estimatedFare - o ingresa tu oferta'
+                                      : 'Tu oferta de tarifa (opcional)',
+                                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                  prefixText: '\$ ',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
 
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
