@@ -90,6 +90,7 @@ class _MainScreenState extends State<MainScreen> {
   bool requestPositionInfo = true;
   // Oferta de tarifa que el pasajero puede ingresar manualmente
   final TextEditingController _fareController = TextEditingController();
+  final TextEditingController _packageController = TextEditingController();
 
 
   locateUserPosition() async {
@@ -309,8 +310,8 @@ class _MainScreenState extends State<MainScreen> {
 
   void showSuggestedRidesContainer(){
     setState(() {
-      suggestedRidesContainerHeight = 500;
-      bottonPaddingOfMap = 500;
+      suggestedRidesContainerHeight = 550;
+      bottonPaddingOfMap = 550;
     });
   }
 
@@ -344,6 +345,7 @@ class _MainScreenState extends State<MainScreen> {
 
     // Si el pasajero dejó el campo vacío, guardamos cadena vacía (el conductor verá el estimado)
     final String fareOffer = _fareController.text.trim();
+    final String packageDetails = _packageController.text.trim();
 
     Map<String, dynamic> rideInformationMap = {
       "origin": originLocationMap,
@@ -357,6 +359,7 @@ class _MainScreenState extends State<MainScreen> {
       "driverId":"-",
       "offeredFare": fareOffer,  // oferta del pasajero (vacía si no se ingresó)
       "estimatedFare": estimatedFare, // tarifa estimada por el sistema
+      "packageDetails": packageDetails, // detalles de la encomienda
     };
 
     referenceRideRequest!.set(rideInformationMap);
@@ -679,6 +682,7 @@ class _MainScreenState extends State<MainScreen> {
       searchingForDriverContainerHeight = 0;
       suggestedRidesContainerHeight = 0;
       _fareController.clear();
+      _packageController.clear();
     });
   }
 
@@ -691,6 +695,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void dispose() {
     _fareController.dispose();
+    _packageController.dispose();
     super.dispose();
   }
 
@@ -1050,6 +1055,42 @@ class _MainScreenState extends State<MainScreen> {
                                       : 'Tu oferta de tarifa (opcional)',
                                   hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                                   prefixText: '\$ ',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // ── Detalles de Encomienda (Opcional) ──────────────────────────
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _packageController,
+                                decoration: InputDecoration(
+                                  hintText: '¿Qué envías? (Encomienda opcional)',
+                                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
                                     borderSide: BorderSide(

@@ -359,6 +359,7 @@ class SupabaseService {
         // Datos adicionales del usuario
         'user_name': rideData['userName'],
         'user_phone': rideData['userPhone'],
+        'package_details': rideData['packageDetails'],
         // Campos opcionales que pueden venir del ride request de Firebase
         'firebase_ride_id': rideData['_id'],
         'driver_id': rideData['driverId'],
