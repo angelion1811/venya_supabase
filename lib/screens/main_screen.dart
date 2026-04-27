@@ -691,7 +691,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   cancelRideRequestFromPassenger() {
-    referenceRideRequest!.child("status").set("cancelled");
+    referenceRideRequest!.remove();
     
     // Detener los streams
     if (streamRideRequestStatus != null) streamRideRequestStatus!.cancel();
