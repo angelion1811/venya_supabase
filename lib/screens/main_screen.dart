@@ -475,6 +475,10 @@ class _MainScreenState extends State<MainScreen> {
         print("EventSnapshot: ${eventRideRequestSnapshot.snapshot.value}");
 
         dynamic status = eventRideRequestSnapshot.snapshot.value;
+        if(status != null) {
+          setState(() => userRideRequestStatus = status.toString());
+        }
+
         if(status == "accepted"){
           getAssignedDriverInfo();
 
@@ -684,6 +688,39 @@ class _MainScreenState extends State<MainScreen> {
       _fareController.clear();
       _packageController.clear();
     });
+  }
+
+  cancelRideRequestFromPassenger() {
+    referenceRideRequest!.child("status").set("cancelled");
+    
+    // Detener los streams
+    if (streamRideRequestStatus != null) streamRideRequestStatus!.cancel();
+    if (streamRideRequestDriverLocation != null) streamRideRequestDriverLocation!.cancel();
+    
+    setState(() {
+      assignedDriverInfoContainerHeight = 0;
+      searchLocationContainerHeight = 220;
+      bottonPaddingOfMap = 0;
+      
+      // Limpiar mapa
+      polylineSet.clear();
+      markerSet.clear();
+      circleSet.clear();
+      pLineCoordinatedList.clear();
+      
+      // Reset variables
+      driverName = "";
+      driverPhone = "";
+      driverCarDetails = "";
+      driverRatings = "";
+      driverRideStatus = "Chofer está viniendo";
+      userRideRequestStatus = "";
+    });
+
+    Fluttertoast.showToast(msg: "Has cancelado el viaje.");
+    
+    // Regresar a la posición del usuario
+    locateUserPosition();
   }
 
   @override
@@ -1310,15 +1347,52 @@ class _MainScreenState extends State<MainScreen> {
 
                       SizedBox(height: 5),
                       Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _makePhoneCall("tel: ${driverPhone}");
-                        },
-                        style:ElevatedButton.styleFrom(backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue),
-                        icon: Icon(Icons.phone),
-                        label: Text("LLamar al conductor"),
-                      )
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _makePhoneCall("tel: ${driverPhone}");
+                            },
+                            style:ElevatedButton.styleFrom(backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue),
+                            icon: Icon(Icons.phone),
+                            label: Text("LLamar al conductor"),
+                          ),
+                          if (userRideRequestStatus == "accepted" || userRideRequestStatus == "arrived")
+                            Row( children:[
 
+                              const SizedBox(width: 5),
+
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) => AlertDialog(
+                                        title: const Text("Cancelar Viaje"),
+                                        content: const Text("¿Estás seguro de que deseas cancelar este viaje?"),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: const Text("No"),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              cancelRideRequestFromPassenger();
+                                            },
+                                            child: const Text("Sí, Cancelar", style: TextStyle(color: Colors.red)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                  icon: const Icon(Icons.cancel, color: Colors.white),
+                                  label: const Text("Cancelar Viaje", style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          )
+                        ]
+                      )
                     ]
                   )
 
