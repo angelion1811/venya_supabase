@@ -186,6 +186,49 @@ class SupabaseService {
     }
   }
 
+  /// Actualiza la contraseña del usuario actual
+  static Future<Map<String, dynamic>> updatePassword(String newPassword) async {
+    try {
+      await client.auth.updateUser(UserAttributes(password: newPassword));
+      return {'success': true};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Envía un correo de recuperación de contraseña
+  static Future<Map<String, dynamic>> resetPassword(String email) async {
+    try {
+      await client.auth.resetPasswordForEmail(email);
+      return {'success': true};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Verifica el código de recuperación enviado por correo
+  static Future<Map<String, dynamic>> verifyRecoveryCode(String email, String code) async {
+    try {
+      final response = await client.auth.verifyOTP(
+        token: code,
+        type: OtpType.recovery,
+        email: email,
+      );
+      if (response.session != null) {
+        return {'success': true};
+      }
+      return {'success': false, 'message': 'Código inválido o expirado'};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   /// Cierra la sesión del usuario
   static Future<void> logout() async {
     await client.auth.signOut();

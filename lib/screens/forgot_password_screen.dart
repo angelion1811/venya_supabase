@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:ven_app/global/global.dart';
+import 'package:ven_app/Services/supabase_service.dart';
+import 'package:ven_app/screens/verify_code_screen.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/register_screen.dart';
 class ForgotPasswordScreen extends StatefulWidget {
@@ -18,14 +20,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
-  void _submit(){
-    firebaseAuth.sendPasswordResetEmail(
-        email: emailTextEditingController.text.trim()
-    ).then((value){
-      Fluttertoast.showToast(msg: "Hemos enviado un correo para recuper contrase'a, por favor verificar el correo electronico ");
-    }).catchError((error, stackTrace){
-      Fluttertoast.showToast(msg: "Error Ocurrido: \n ${error.toString()}");
-    });
+  void _submit() async {
+    if (_formKey.currentState!.validate()) {
+      final email = emailTextEditingController.text.trim();
+      
+      final result = await SupabaseService.resetPassword(email);
+      
+      if (result['success']) {
+        Fluttertoast.showToast(msg: "Hemos enviado un código a tu correo.");
+        Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (c) => VerifyCodeScreen(email: email))
+        );
+      } else {
+        Fluttertoast.showToast(msg: "Error: ${result['message']}");
+      }
+    }
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:ven_app/global/global.dart';
+import 'package:ven_app/screens/change_password_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -252,6 +253,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.bold
                   ),
                 ),
+
+                const SizedBox(height: 40),
+
+                ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (c) => const ChangePasswordScreen()));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text("Cambiar contraseña", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
               ],
             ),
           ),
