@@ -360,6 +360,7 @@ class _MainScreenState extends State<MainScreen> {
       "offeredFare": fareOffer,  // oferta del pasajero (vacía si no se ingresó)
       "estimatedFare": estimatedFare, // tarifa estimada por el sistema
       "packageDetails": packageDetails, // detalles de la encomienda
+      "userId": SupabaseService.currentUser?.id,
     };
 
     referenceRideRequest!.set(rideInformationMap);
@@ -471,10 +472,17 @@ class _MainScreenState extends State<MainScreen> {
     Fluttertoast.showToast(msg: "Notification sent successfully");
 
     //
-    streamRideRequestStatus = FirebaseDatabase.instance.ref().child("All Ride Requests").child(referenceRideRequest!.key!).child("status").onValue.listen((eventRideRequestSnapshot) async {
+    streamRideRequestStatus = FirebaseDatabase.instance.ref().child("All Ride Requests").child(referenceRideRequest!.key!).onValue.listen((eventRideRequestSnapshot) async {
         print("EventSnapshot: ${eventRideRequestSnapshot.snapshot.value}");
 
-        dynamic status = eventRideRequestSnapshot.snapshot.value;
+        if (eventRideRequestSnapshot.snapshot.value == null) {
+          // Si el viaje fue eliminado (cancelado o finalizado por el conductor)
+          return;
+        }
+
+        Map data = eventRideRequestSnapshot.snapshot.value as Map;
+        dynamic status = data["status"];
+        
         if(status != null) {
           setState(() => userRideRequestStatus = status.toString());
         }
@@ -490,8 +498,8 @@ class _MainScreenState extends State<MainScreen> {
         }else if(status == 'ended'){
           streamRideRequestDriverLocation!.cancel();
           streamRideRequestStatus!.cancel();
-          dynamic fareAmountRef = await referenceRideRequest!.child('fareAmount').get();
-          double fareAmount = double.parse(fareAmountRef.value);
+          
+          double fareAmount = double.parse(data['fareAmount'].toString());
 
           var response = await showDialog(
               context: context,
@@ -502,8 +510,7 @@ class _MainScreenState extends State<MainScreen> {
 
           if(response == "Cash Paid"){
             //user can rate the driver now
-            dynamic driverId = await referenceRideRequest!.child('driverId').get();
-            String assignedDriverId = driverId.value;
+            String assignedDriverId = data['driverId'].toString();
 
             Navigator.push(context, MaterialPageRoute(builder: (c)=> RateDriverScreen(
               assignedDriverId: assignedDriverId,
