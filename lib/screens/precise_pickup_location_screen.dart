@@ -44,6 +44,8 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
 
   GlobalKey<ScaffoldState> _scafforState = GlobalKey<ScaffoldState>();
 
+  bool isFromSearch = false;
+
   locateUserPosition() async {
     Position cPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     userCurrentPosition = cPosition;
@@ -125,7 +127,11 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
                 }
               },
               onCameraIdle: () {
-                getAddressFromLatlng();
+                if (isFromSearch) {
+                  setState(() => isFromSearch = false);
+                } else {
+                  getAddressFromLatlng();
+                }
               },
             ),
             Align(
@@ -162,6 +168,7 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
                                       onPressed: () async {
                                         var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen(place: 'origin',)));
                                         if(responseFromSearch == 'obtainedPickup'){
+                                          setState(() => isFromSearch = true);
                                           await locatePickUpPosition();
                                         }
                                       },

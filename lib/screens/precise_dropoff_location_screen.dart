@@ -44,6 +44,8 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
 
   GlobalKey<ScaffoldState> _scafforState = GlobalKey<ScaffoldState>();
 
+  bool isFromSearch = false;
+
   locateUserPosition(context) async {
     Position cPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     userCurrentPosition = cPosition;
@@ -124,7 +126,11 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
                   }
                 },
                 onCameraIdle: () {
-                  getAddressFromLatlng();
+                  if (isFromSearch) {
+                    setState(() => isFromSearch = false);
+                  } else {
+                    getAddressFromLatlng();
+                  }
                 },
               ),
               Align(
@@ -160,6 +166,7 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
                                           onPressed: () async {
                                             var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen(place: 'destiny',)));
                                             if(responseFromSearch == 'obtainedDropoff'){
+                                              setState(() => isFromSearch = true);
                                               await locateDropOffPosition();
                                             }
                                           },

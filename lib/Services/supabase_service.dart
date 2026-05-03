@@ -525,6 +525,61 @@ class SupabaseService {
     }
   }
 
+  // ========== FUTURE RIDES ==========
+
+  /// Obtiene todos los viajes futuros activos
+  static Future<List<Map<String, dynamic>>> getAllFutureRides() async {
+    try {
+      final result = await client
+          .from('future_rides')
+          .select('*, drivers(names, surnames, phone, car_details)')
+          .eq('status', 'active')
+          .gte('ride_date', DateTime.now().toIso8601String())
+          .order('ride_date', ascending: true);
+
+      // Obtener el conteo de pasajeros para cada viaje
+      final rides = List<Map<String, dynamic>>.from(result);
+      for (var ride in rides) {
+        final passengers = await client
+            .from('future_ride_passengers')
+            .select('seats_booked')
+            .eq('future_ride_id', ride['id'])
+            .eq('status', 'confirmed');
+        
+        int booked = 0;
+        for (var p in passengers) {
+          booked += (p['seats_booked'] as int);
+        }
+        ride['booked_seats'] = booked;
+      }
+
+      return rides;
+    } catch (e) {
+      log('Error en getAllFutureRides: $e');
+      return [];
+    }
+  }
+
+  /// Reserva un puesto en un viaje futuro
+  static Future<Map<String, dynamic>> bookFutureRideSeat(String rideId, int seats) async {
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return {'success': false, 'message': 'No autorizado'};
+
+      final result = await client.from('future_ride_passengers').insert({
+        'future_ride_id': rideId,
+        'user_id': userId,
+        'seats_booked': seats,
+        'status': 'confirmed',
+      }).select().single();
+
+      return {'success': true, 'data': result};
+    } catch (e) {
+      log('Error en bookFutureRideSeat: $e');
+      return {'success': false, 'message': 'Ya estás registrado en este viaje o error al reservar'};
+    }
+  }
+
   // ========== UTILIDADES ==========
 
   /// Verifica si hay una sesión activa

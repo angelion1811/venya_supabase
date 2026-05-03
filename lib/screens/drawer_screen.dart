@@ -7,6 +7,7 @@ import 'package:ven_app/screens/news_screen.dart';
 import 'package:ven_app/screens/profile_screen.dart';
 import 'package:ven_app/screens/terms_and_conditions_screen.dart';
 import 'package:ven_app/screens/trip_history_screen.dart';
+import 'package:ven_app/screens/future_rides_search_screen.dart';
 import 'package:ven_app/widgets/drawer_option.dart';
 
 import '../infoHandler/app_info.dart';
@@ -181,6 +182,12 @@ class DrawerScreen extends StatelessWidget {
                     optionName: "Historial de viajes",
                     darkTheme: darkTheme,
                     onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (c)=>TripHistoryScreen())),
+                  ),
+                  Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
+                  DrawerOption(
+                    optionName: "Viajes compartidos",
+                    darkTheme: darkTheme,
+                    onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (c)=>FutureRidesSearchScreen())),
                   ),
                   Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                   DrawerOption(
