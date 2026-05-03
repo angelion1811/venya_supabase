@@ -70,33 +70,31 @@ class AssistantMethods {
     return humanReadableAddress;
   }
 
-  static Future<DirectionDetailsInfo> obtainOriginToDestinationDirectionDetails(LatLng originPosition, LatLng destinationPosition) async {
-    /*
-    //google maps
-    String urlOriginToDestinationDirectionsDetails = 'https://maps.googleapis.com/maps/api/directions/json?origin=${originPosition
-        .latitude},${originPosition.longitude}&destination=${destinationPosition
-        .latitude},${destinationPosition.longitude}&key=$mapKey';
-    */
+  static Future<DirectionDetailsInfo?> obtainOriginToDestinationDirectionDetails(LatLng originPosition, LatLng destinationPosition) async {
     String urlOriginToDestinationDirectionsDetails = 'http://router.project-osrm.org/route/v1/driving/${originPosition.longitude},${originPosition.latitude};${destinationPosition.longitude},${destinationPosition.latitude}?steps=true&annotations=true&geometries=geojson&overview=full';
 
-    var responseDirectionApi = await RequestAssistant.receiveRequest(
-        urlOriginToDestinationDirectionsDetails);
-    /*
-    if (responseDirectionApis == "Error Ocurred. Failed. No Response.") {
+    try {
+      var responseDirectionApi = await RequestAssistant.receiveRequest(
+          urlOriginToDestinationDirectionsDetails);
+      /*
+      if (responseDirectionApi == "Error Ocurred. Failed. No Response." || responseDirectionApi["code"] != "Ok") {
+        return null;
+      }
+      */
+      DirectionDetailsInfo directionDetailsInfo = DirectionDetailsInfo();
+      directionDetailsInfo.e_points =
+      responseDirectionApi["routes"][0]["geometry"]["coordinates"];
+
+      directionDetailsInfo.distance_text = (responseDirectionApi["routes"][0]["distance"]).toString();
+      directionDetailsInfo.distance_value = (responseDirectionApi["routes"][0]["distance"]).toInt();
+      directionDetailsInfo.duration_text = (responseDirectionApi["routes"][0]["duration"]).toString();
+      directionDetailsInfo.duration_value = (responseDirectionApi["routes"][0]["duration"]).toInt();
+
+      return directionDetailsInfo;
+    } catch (e) {
+      log('Error in obtainOriginToDestinationDirectionDetails: $e');
       return null;
     }
-     */
-
-    DirectionDetailsInfo directionDetailsInfo = DirectionDetailsInfo();
-    directionDetailsInfo.e_points =
-    responseDirectionApi["routes"][0]["geometry"]["coordinates"];
-
-    directionDetailsInfo.distance_text = (responseDirectionApi["routes"][0]["distance"]).toString();
-    directionDetailsInfo.distance_value = (responseDirectionApi["routes"][0]["distance"]).toInt();
-    directionDetailsInfo.duration_text = (responseDirectionApi["routes"][0]["duration"]).toString();
-    directionDetailsInfo.duration_value = (responseDirectionApi["routes"][0]["duration"]).toInt();
-
-    return directionDetailsInfo;
   }
 
   static double calculateFareAroundFromOriginToDestination(DirectionDetailsInfo directionDetailsInfo){

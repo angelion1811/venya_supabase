@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -461,6 +463,65 @@ class SupabaseService {
         'statusCode': 500,
         'errors': <String, dynamic>{'server': <String>['Error al obtener historial']},
       };
+    }
+  }
+
+  /// Califica a un conductor y actualiza el viaje en Supabase
+  static Future<Map<String, dynamic>> rateDriver(String driverId, String rideId, double rating) async {
+    try {
+      // 1. Actualizar la calificación en el registro del viaje
+      await client
+          .from('rides')
+          .update({'rating': rating.toInt()})
+          .eq('firebase_ride_id', rideId); // Usar firebase_ride_id porque es el ID que tiene la app en este momento
+
+      // La actualización del promedio del conductor se debe hacer con un trigger en la BD
+      // o desde la app del conductor. La app de pasajeros no tiene permisos para actualizar
+      // la tabla de drivers (o ni siquiera existe en su esquema).
+
+      return {'success': true};
+    } catch (error) {
+      log('Error en rateDriver: $error');
+      Fluttertoast.showToast(
+        msg: 'Error al calificar conductor: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 5,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return {'success': false, 'message': error.toString()};
+    }
+  }
+
+  /// Obtiene el fare_amount de un viaje en Supabase a partir del firebase_ride_id
+  /// Retorna null si no se encontró el viaje o si el campo está vacío
+  static Future<double?> getFareAmountByFirebaseId(String firebaseRideId) async {
+    try {
+      final result = await client
+          .from('rides')
+          .select('fare_amount')
+          .eq('firebase_ride_id', firebaseRideId)
+          .maybeSingle();
+
+          print("result: $result");
+          print("fare_amount: ${result?['fare_amount']}");
+
+      if (result == null || result['fare_amount'] == null) return null;
+      return (result['fare_amount'] as num).toDouble();
+    } catch (e) {
+      log('Error en getFareAmountByFirebaseId: $e');
+      Fluttertoast.showToast(
+        msg: 'Error al obtener el monto del viaje',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 2,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return null;
     }
   }
 

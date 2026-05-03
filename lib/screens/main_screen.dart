@@ -19,7 +19,7 @@ import 'package:ven_app/models/active_nearby_available_drivers.dart';
 import 'package:ven_app/screens/drawer_screen.dart';
 import 'package:ven_app/screens/precise_dropoff_location_screen.dart';
 import 'package:ven_app/screens/precise_pickup_location_screen.dart';
-import 'package:ven_app/screens/rate_driver_screen.dart';
+import 'package:ven_app/screens/trip_summary_screen.dart';
 import 'package:ven_app/splashScreen/splash_screen.dart';
 import 'package:ven_app/widgets/card_vehicle_type.dart';
 import 'package:ven_app/widgets/progress_dialog.dart';
@@ -203,9 +203,15 @@ class _MainScreenState extends State<MainScreen> {
     );
 
     var directionDetailsInfo = await AssistantMethods.obtainOriginToDestinationDirectionDetails(originLatLng, destinationLatLng);
-    setState(()=>tripDirectionDetailsInfo =  directionDetailsInfo);
-
+    
     Navigator.pop(context);
+
+    if (directionDetailsInfo == null) {
+      Fluttertoast.showToast(msg: "No se pudo encontrar una ruta entre los puntos.");
+      return;
+    }
+
+    setState(()=>tripDirectionDetailsInfo =  directionDetailsInfo);
 
     pLineCoordinatedList.clear();
 
@@ -482,12 +488,12 @@ class _MainScreenState extends State<MainScreen> {
 
         Map data = eventRideRequestSnapshot.snapshot.value as Map;
         dynamic status = data["status"];
-        
+        dynamic fareAmount = data["fareAmount"];
         if(status != null) {
           setState(() => userRideRequestStatus = status.toString());
         }
 
-        if(status == "accepted"){
+        if(status == "accepted"){  
           getAssignedDriverInfo();
 
         } else if(status == "arrived"){
@@ -499,30 +505,50 @@ class _MainScreenState extends State<MainScreen> {
           streamRideRequestDriverLocation!.cancel();
           streamRideRequestStatus!.cancel();
           
-          double fareAmount = double.parse(data['fareAmount'].toString());
+          // Obtener fare_amount desde Supabase (fuente autorizada)
+          double? fareAmount = await SupabaseService.getFareAmountByFirebaseId(
+              referenceRideRequest!.key!);
 
-          var response = await showDialog(
-              context: context,
-              builder: (BuildContext context) => PayFareAmountDialog(
-                fareAmount: fareAmount,
-              )
-          );
-
-          if(response == "Cash Paid"){
-            //user can rate the driver now
-            String assignedDriverId = data['driverId'].toString();
-
-            Navigator.push(context, MaterialPageRoute(builder: (c)=> RateDriverScreen(
-              assignedDriverId: assignedDriverId,
-            )));
-
-            rideInformationMap['_id'] = referenceRideRequest!.key;
-            var responseRequest = await SupabaseService.saveRide(rideInformationMap);
-            referenceRideRequest!.onDisconnect();
-            streamRideRequestDriverLocation!.cancel();
-            streamRideRequestStatus!.cancel();
-            referenceRideRequest!.remove();
+          // Fallback: intentar leer el valor de Firebase si Supabase aún no lo tiene
+          if (fareAmount == null && data['fareAmount'] != null) {
+            fareAmount = double.tryParse(data['fareAmount'].toString());
           }
+
+          if (fareAmount == null) {
+            Fluttertoast.showToast(msg: "No se pudo obtener el monto del viaje.");
+            return;
+          }
+
+          String assignedDriverId = data['driverId']?.toString() ?? "";
+          String currentRideId = referenceRideRequest!.key!;
+          String driverName = data['driverName']?.toString() ?? "";
+          String originAddress = data['originAddress']?.toString() ?? "";
+          String destinationAddress = data['destinationAddress']?.toString() ?? "";
+
+          // Guardamos en Supabase antes de ir a calificar para que el registro ya exista
+          rideInformationMap['_id'] = currentRideId;
+          rideInformationMap['driverId'] = assignedDriverId;
+          rideInformationMap['driverName'] = driverName;
+          rideInformationMap['fareAmount'] = fareAmount;
+          rideInformationMap['status'] = 'ended';
+          await SupabaseService.saveRide(rideInformationMap);
+
+          await Navigator.push(context, MaterialPageRoute(builder: (c)=> TripSummaryScreen(
+            assignedDriverId: assignedDriverId,
+            rideId: currentRideId,
+            driverName: driverName,
+            fareAmount: fareAmount,
+            originAddress: originAddress,
+            destinationAddress: destinationAddress,
+          )));
+
+          referenceRideRequest!.onDisconnect();
+          streamRideRequestDriverLocation!.cancel();
+          streamRideRequestStatus!.cancel();
+          referenceRideRequest!.remove();
+
+          // Esconder la información del conductor y resetear la UI
+          resetApp();
         }
     });
 
@@ -687,14 +713,50 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   cancelRideRequestInSearchingForDrive(){
-    referenceRideRequest!.remove();
+    if (referenceRideRequest != null) {
+      referenceRideRequest!.remove();
+    }
+    
+    // Detener los streams si están activos
+    if (streamRideRequestStatus != null) {
+      streamRideRequestStatus!.cancel().catchError((e) => print('Error cancelando streamStatus: $e'));
+      streamRideRequestStatus = null;
+    }
+    if (streamRideRequestDriverLocation != null) {
+      streamRideRequestDriverLocation!.cancel().catchError((e) => print('Error cancelando streamLocation: $e'));
+      streamRideRequestDriverLocation = null;
+    }
+
     setState(() {
       selectedVehicleType='';
       searchingForDriverContainerHeight = 0;
       suggestedRidesContainerHeight = 0;
+      searchLocationContainerHeight = 220; // Volver a mostrar el contenedor de búsqueda
+      bottonPaddingOfMap = 220; // Ajustar padding
+      
+      // Limpiar datos introducidos
       _fareController.clear();
       _packageController.clear();
+      
+      // Limpiar mapa
+      polylineSet.clear();
+      markerSet.clear();
+      circleSet.clear();
+      pLineCoordinatedList.clear();
+      
+      // Reset variables
+      driverName = "";
+      driverPhone = "";
+      driverCarDetails = "";
+      driverRatings = "";
+      driverRideStatus = "Chofer está viniendo";
+      userRideRequestStatus = "";
     });
+
+    Fluttertoast.showToast(msg: "Solicitud cancelada");
+    
+    // Regresar a la posición del usuario
+    locateUserPosition();
   }
 
   cancelRideRequestFromPassenger() {
@@ -729,6 +791,50 @@ class _MainScreenState extends State<MainScreen> {
     // Regresar a la posición del usuario
     locateUserPosition();
   }
+
+  void resetApp() {
+  setState(() {
+    // Ocultar la información del conductor (altura del contenedor)
+    assignedDriverInfoContainerHeight = 0;
+    
+    // Resetear el estado del mapa
+    selectedVehicleType = '';
+    pLineCoordinatedList.clear();
+    polylineSet.clear();
+    markerSet.clear();
+    circleSet.clear();
+
+    bottonPaddingOfMap = 0;
+    
+    // Resetear variables de datos
+    driverName = "";
+    driverPhone = "";
+    driverCarDetails = "";
+    driverRatings = "";
+    driverRideStatus = "Chofer está viniendo";
+    userRideRequestStatus = "";
+    
+    // Limpiar los controladores de texto
+    _fareController.clear();
+    _packageController.clear();
+    
+    // Detener listeners si están activos
+    // (Esto se maneja mejor en un bloque try/catch o con guards, pero por ahora aseguramos que los streams no cause errores si se intenta cancelar)
+  });
+  
+  // Cancelar streams pendientes
+  if (streamRideRequestStatus != null) {
+    streamRideRequestStatus!.cancel().catchError((e) => print('Error cancelando streamStatus: $e'));
+    streamRideRequestStatus = null;
+  }
+  if (streamRideRequestDriverLocation != null) {
+    streamRideRequestDriverLocation!.cancel().catchError((e) => print('Error cancelando streamLocation: $e'));
+    streamRideRequestDriverLocation = null;
+  }
+  
+  // Re-iniciar la búsqueda de la posición del usuario
+  locateUserPosition();
+}
 
   @override
   void initState(){

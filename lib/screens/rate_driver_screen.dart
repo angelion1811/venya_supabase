@@ -4,11 +4,13 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:smooth_star_rating_nsafe/smooth_star_rating.dart';
 import 'package:ven_app/global/global.dart';
 import 'package:ven_app/splashScreen/splash_screen.dart';
+import '../Services/supabase_service.dart';
 
 class RateDriverScreen extends StatefulWidget {
 
   String? assignedDriverId;
-  RateDriverScreen({this.assignedDriverId});
+  String? rideId;
+  RateDriverScreen({this.assignedDriverId, this.rideId});
 
   @override
   State<RateDriverScreen> createState() => _RateDriverScreenState();
@@ -27,24 +29,30 @@ class _RateDriverScreenState extends State<RateDriverScreen> {
         setState(()=>titleStartRating = "Muy mal");
       }
       if(countRatingStarts == 2){
-        setState(()=>titleStartRating = "Muy mal");
+        setState(()=>titleStartRating = "Mal");
       }
       if(countRatingStarts == 3){
-        setState(()=>titleStartRating = "Muy mal");
+        setState(()=>titleStartRating = "Regular");
       }
       if(countRatingStarts == 4){
-        setState(()=>titleStartRating = "Muy mal");
+        setState(()=>titleStartRating = "Bien");
       }
       if(countRatingStarts == 5){
-        setState(()=>titleStartRating = "Muy mal");
+        setState(()=>titleStartRating = "Excelente");
       }
     }
 
-    saveQualify(){
-
+    saveQualify() async {
+      if (widget.assignedDriverId != null && widget.rideId != null) {
+        await SupabaseService.rateDriver(
+          widget.assignedDriverId!,
+          widget.rideId!,
+          countRatingStarts
+        );
+      }
+      
       Navigator.pop(context, "qualified");
       Fluttertoast.showToast(msg: "Calificado");
-
     }
 
     return Dialog(
