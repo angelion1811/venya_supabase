@@ -46,7 +46,7 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
 
   bool isFromSearch = false;
 
-  locateUserPosition(context) async {
+  locateUserPosition() async {
     Position cPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     userCurrentPosition = cPosition;
 
@@ -56,7 +56,13 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
     newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
     String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
-    return;
+    
+    Directions userDropOffAddress = Directions();
+    userDropOffAddress.locationLatitude = userCurrentPosition!.latitude;
+    userDropOffAddress.locationLongitude = userCurrentPosition!.longitude;
+    userDropOffAddress.locationName = humaneReableAddress;
+
+    Provider.of<AppInfo>(context, listen: false).updateDroffLocationAddress(userDropOffAddress);
   }
 
   locateDropOffPosition() async {
@@ -111,9 +117,14 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
                   setState(() {
                     bottonPaddingOfMap = 50;
                   });
-                  print("changing location");
-                  locateUserPosition(context);
-                },
+                  // Si ya existe una ubicación seleccionada, centramos el mapa ahí
+                var dropOffPosition = Provider.of<AppInfo>(context, listen: false).userDropOffLocation;
+                if (dropOffPosition != null) {
+                  locateDropOffPosition();
+                } else {
+                  locateUserPosition();
+                }
+              },
                 onCameraMove:(CameraPosition? position){
                   if(dropOffLocation != position!.target){
                     try {
@@ -243,6 +254,18 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
                 ),
               ),
               Positioned(
+              bottom: 80,
+              right: 20,
+              child: FloatingActionButton.extended(
+                backgroundColor: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                icon: Icon(Icons.my_location, color: darkTheme ? Colors.black : Colors.white),
+                label: Text("Mi Ubicación", style: TextStyle(color: darkTheme ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  locateUserPosition();
+                },
+              ),
+            ),
+            Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
@@ -251,7 +274,6 @@ class _PreciseDropOffLocationScreenState extends State<PreciseDropOffLocationScr
                   child: ElevatedButton(
                     onPressed: () async {
                       await getAddressFromLatlng();
-                      await locateUserPosition(context);
                       Navigator.pop(context, "obtainedDropoff");
                     },
                     style: ElevatedButton.styleFrom(

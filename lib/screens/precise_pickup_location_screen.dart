@@ -56,7 +56,13 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
     newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
     String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
-    return;
+    
+    Directions userPickUpAddress = Directions();
+    userPickUpAddress.locationLatitude = userCurrentPosition!.latitude;
+    userPickUpAddress.locationLongitude = userCurrentPosition!.longitude;
+    userPickUpAddress.locationName = humaneReableAddress;
+
+    Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(userPickUpAddress);
   }
 
   getAddressFromLatlng() async {
@@ -111,8 +117,14 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
                 setState(() {
                     bottonPaddingOfMap = 50;
                 });
-                print("changing location");
-                locateUserPosition();
+                
+                // Si ya existe una ubicación seleccionada, centramos el mapa ahí
+                var originPosition = Provider.of<AppInfo>(context, listen: false).userPickUpLocation;
+                if (originPosition != null) {
+                  locatePickUpPosition();
+                } else {
+                  locateUserPosition();
+                }
               },
               onCameraMove:(CameraPosition? position){
                 if(pickLocation != position!.target){
@@ -247,6 +259,18 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
               ),
             ),
             Positioned(
+              bottom: 80,
+              right: 20,
+              child: FloatingActionButton.extended(
+                backgroundColor: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                icon: Icon(Icons.my_location, color: darkTheme ? Colors.black : Colors.white),
+                label: Text("Mi Ubicación", style: TextStyle(color: darkTheme ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  locateUserPosition();
+                },
+              ),
+            ),
+            Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
@@ -255,7 +279,6 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
                       child: ElevatedButton(
                         onPressed: () async {
                           await getAddressFromLatlng();
-                          await locateUserPosition();
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(

@@ -27,6 +27,7 @@ import '../Assistants/black_theme_google_map.dart';
 import '../widgets/pay_fare_amount_dialog.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../Assistants/socket_assistant.dart';
+import '../models/directions.dart';
 
 Future<void> _makePhoneCall(String url) async {
   if (!await launchUrl(Uri.parse(url))) {
@@ -100,8 +101,20 @@ class _MainScreenState extends State<MainScreen> {
     CameraPosition cameraPosition = CameraPosition(target: latLngPosition, zoom: 15);
     newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
     initializeGeoFireListener();
-    String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
-    print("this is our address = "+humaneReableAddress);
+
+    // Solo buscamos la dirección automáticamente si no hay una ya seleccionada
+    var appInfo = Provider.of<AppInfo>(context, listen: false);
+    if (appInfo.userPickUpLocation == null) {
+      String humaneReableAddress = await AssistantMethods.searchAddressForGeographicCoordinates(userCurrentPosition!.latitude, userCurrentPosition!.longitude, context);
+      print("this is our address = " + humaneReableAddress);
+      
+      Directions userPickAddress = Directions();
+      userPickAddress.locationLatitude = userCurrentPosition!.latitude;
+      userPickAddress.locationLongitude = userCurrentPosition!.longitude;
+      userPickAddress.locationName = humaneReableAddress;
+      appInfo.updatePickUpLocationAddress(userPickAddress);
+    }
+    
     userName = userModelCurrentInfo!.names!;
     useEmail = userModelCurrentInfo!.email!;
     AssistantMethods.readTripsKeysForOnlineUser(context);

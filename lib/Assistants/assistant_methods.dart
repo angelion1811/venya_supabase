@@ -55,11 +55,11 @@ class AssistantMethods {
         humanReadableAddress = requestResponse['display_name'] ?? '';
         print("Dirección obtenida de Nominatim: $humanReadableAddress");
 
-        Directions userPickAddress = Directions();
-        userPickAddress.locationLatitude = clatitude;
-        userPickAddress.locationLongitude = clongitude;
-        userPickAddress.locationName = humanReadableAddress;
-        Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(userPickAddress);
+        // Directions userPickAddress = Directions();
+        // userPickAddress.locationLatitude = clatitude;
+        // userPickAddress.locationLongitude = clongitude;
+        // userPickAddress.locationName = humanReadableAddress;
+        // Provider.of<AppInfo>(context, listen: false).updatePickUpLocationAddress(userPickAddress);
       } else {
         print("Error: Nominatim no respondió");
       }
