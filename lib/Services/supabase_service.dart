@@ -530,27 +530,35 @@ class SupabaseService {
   /// Obtiene todos los viajes futuros activos
   static Future<List<Map<String, dynamic>>> getAllFutureRides() async {
     try {
+      final userId = currentUser?.id;
       final result = await client
           .from('future_rides')
-          .select('*, drivers(names, surnames, phone, car_details)')
+          .select('*, drivers(names, surnames, phone, car_details), future_ride_passengers(user_id, seats_booked, status)')
           .eq('status', 'active')
           .gte('ride_date', DateTime.now().toIso8601String())
           .order('ride_date', ascending: true);
 
-      // Obtener el conteo de pasajeros para cada viaje
+      // Procesar datos de pasajeros
       final rides = List<Map<String, dynamic>>.from(result);
       for (var ride in rides) {
-        final passengers = await client
-            .from('future_ride_passengers')
-            .select('seats_booked')
-            .eq('future_ride_id', ride['id'])
-            .eq('status', 'confirmed');
+        final passengers = ride['future_ride_passengers'] as List;
         
         int booked = 0;
+        bool isUserPassenger = false;
+        int userBookedSeats = 0;
+
         for (var p in passengers) {
-          booked += (p['seats_booked'] as int);
+          if (p['status'] == 'confirmed') {
+            booked += (p['seats_booked'] as int);
+            if (userId != null && p['user_id'] == userId) {
+              isUserPassenger = true;
+              userBookedSeats = p['seats_booked'] as int;
+            }
+          }
         }
         ride['booked_seats'] = booked;
+        ride['is_user_passenger'] = isUserPassenger;
+        ride['user_booked_seats'] = userBookedSeats;
       }
 
       return rides;
@@ -566,17 +574,61 @@ class SupabaseService {
       final userId = currentUser?.id;
       if (userId == null) return {'success': false, 'message': 'No autorizado'};
 
-      final result = await client.from('future_ride_passengers').insert({
-        'future_ride_id': rideId,
-        'user_id': userId,
-        'seats_booked': seats,
-        'status': 'confirmed',
-      }).select().single();
+      // Verificar si ya existe una reserva previa (incluso cancelada)
+      final existing = await client
+          .from('future_ride_passengers')
+          .select()
+          .eq('future_ride_id', rideId)
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      return {'success': true, 'data': result};
+      if (existing != null) {
+        // Si ya existía, actualizamos el estado y la cantidad de puestos
+        final result = await client
+            .from('future_ride_passengers')
+            .update({
+              'seats_booked': seats,
+              'status': 'confirmed',
+            })
+            .eq('id', existing['id'])
+            .select()
+            .single();
+        return {'success': true, 'data': result};
+      } else {
+        // Si es la primera vez, insertamos el nuevo registro
+        final result = await client.from('future_ride_passengers').insert({
+          'future_ride_id': rideId,
+          'user_id': userId,
+          'seats_booked': seats,
+          'status': 'confirmed',
+        }).select().single();
+        return {'success': true, 'data': result};
+      }
     } catch (e) {
       log('Error en bookFutureRideSeat: $e');
-      return {'success': false, 'message': 'Ya estás registrado en este viaje o error al reservar'};
+      return {'success': false, 'message': 'Error al procesar la reserva'};
+    }
+  }
+
+  /// Cancela una reserva en un viaje futuro
+  static Future<Map<String, dynamic>> cancelFutureRideReservation(String rideId) async {
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return {'success': false, 'message': 'No autorizado'};
+
+      await client
+          .from('future_ride_passengers')
+          .update({
+            'status': 'cancelled',
+            'seats_booked': 0,
+          })
+          .eq('future_ride_id', rideId)
+          .eq('user_id', userId);
+
+      return {'success': true};
+    } catch (e) {
+      log('Error en cancelFutureRideReservation: $e');
+      return {'success': false, 'message': 'Error al cancelar la reserva'};
     }
   }
 
