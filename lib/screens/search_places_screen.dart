@@ -34,7 +34,22 @@ class _SearchPlacesScreenState extends State<SearchPlacesScreen> {
       });
       // Nominatim requiere User-Agent header - usamos el email del usuario autenticado
       final userEmail = SupabaseService.currentUser?.email ?? 'anonimo@venapp.com';
-      String urlAutoCompleteSearch = 'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(inputText)}&limit=20&format=json&addressdetails=1';
+      
+      // Check if input is coordinates
+      final RegExp coordinatePattern = RegExp(r'^\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*$');
+      final match = coordinatePattern.firstMatch(inputText);
+      
+      String urlAutoCompleteSearch;
+      bool isCoordinate = false;
+      
+      if (match != null) {
+        isCoordinate = true;
+        final lat = match.group(1);
+        final lon = match.group(3);
+        urlAutoCompleteSearch = 'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&addressdetails=1';
+      } else {
+        urlAutoCompleteSearch = 'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(inputText)}&limit=20&format=json&addressdetails=1';
+      }
       
       var responseApiAutoCompleteSearch = await RequestAssistant.receiveRequest(
         urlAutoCompleteSearch,
@@ -51,9 +66,25 @@ class _SearchPlacesScreenState extends State<SearchPlacesScreen> {
         return;
       }
 
-      if(responseApiAutoCompleteSearch != null && responseApiAutoCompleteSearch is List){
-        var placePredictionsList = (responseApiAutoCompleteSearch as List).map((jsonData) => PredictedPlaces.fromJson(jsonData)).toList();
-        setState(() { placesPredictedList = placePredictionsList; });
+      if(responseApiAutoCompleteSearch != null){
+        List<PredictedPlaces> newPlacesPredictedList = [];
+        if (isCoordinate) {
+          if (responseApiAutoCompleteSearch is Map<String, dynamic> && !responseApiAutoCompleteSearch.containsKey('error')) {
+            newPlacesPredictedList.add(PredictedPlaces.fromJson(responseApiAutoCompleteSearch));
+          } else {
+             // Fallback if reverse geocoding fails
+             newPlacesPredictedList.add(PredictedPlaces(
+               main_text: "Ubicación por Coordenadas",
+               secondary_text: inputText,
+               latitude: double.tryParse(match!.group(1)!),
+               longitude: double.tryParse(match!.group(3)!),
+               place_id: "coord_${DateTime.now().millisecondsSinceEpoch}",
+             ));
+          }
+        } else if (responseApiAutoCompleteSearch is List) {
+          newPlacesPredictedList = (responseApiAutoCompleteSearch as List).map((jsonData) => PredictedPlaces.fromJson(jsonData)).toList();
+        }
+        setState(() { placesPredictedList = newPlacesPredictedList; });
       }
     } else {
       setState(() {
