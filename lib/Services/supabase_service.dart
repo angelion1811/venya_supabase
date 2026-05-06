@@ -445,7 +445,7 @@ class SupabaseService {
 
       final rides = await client
           .from('rides')
-          .select()
+          .select('*, drivers(names, surnames)')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 

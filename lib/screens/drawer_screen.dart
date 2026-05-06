@@ -159,7 +159,7 @@ class DrawerScreen extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text( '0',
+                                Text( Provider.of<AppInfo>(context).countTotalTrips.toString(),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,

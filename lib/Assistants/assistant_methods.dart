@@ -228,6 +228,32 @@ class AssistantMethods {
     }
   }
 
+  static Future<void> readTripsHistoryFromSupabase(context) async {
+    final response = await SupabaseService.getRidesHistory();
+    if (response['success'] == true && response['data'] != null) {
+      List<dynamic> ridesData = response['data'];
+      
+      // Clear the previous list in AppInfo to avoid duplicates on reload
+      Provider.of<AppInfo>(context, listen: false).allTripsHistoryInformationList.clear();
+      
+      int endedTripsCount = 0;
+
+      for (var rideMap in ridesData) {
+        var eachTripHistory = TripsHistoryModel.fromJson(rideMap);
+        
+        // We might want to show all trips or just 'ended' ones
+        // In the previous logic it was just "ended", but let's keep all or just ended
+        if (eachTripHistory.status == "ended") {
+          endedTripsCount++;
+          Provider.of<AppInfo>(context, listen: false).updateOverAllTripsHistoryInformation(eachTripHistory);
+        }
+      }
+
+      // Update the total count of ended trips
+      Provider.of<AppInfo>(context, listen: false).updateOverAllTripsCounter(endedTripsCount);
+    }
+  }
+
 
   static  Future<bool> checkIfRecordExists(String nodo, String fieldName, String fieldValue) async {
     try {

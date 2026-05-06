@@ -117,7 +117,7 @@ class _MainScreenState extends State<MainScreen> {
     
     userName = userModelCurrentInfo!.names!;
     useEmail = userModelCurrentInfo!.email!;
-    AssistantMethods.readTripsKeysForOnlineUser(context);
+    AssistantMethods.readTripsHistoryFromSupabase(context);
   }
 
   initializeGeoFireListener(){

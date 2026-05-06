@@ -39,7 +39,7 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
 
         Container(
           decoration: BoxDecoration(
-            color: darkTheme ?Colors.red:Colors.white,
+            color: darkTheme ?Colors.black:Colors.white,
             borderRadius: BorderRadius.circular(20),
           ),
           padding: EdgeInsets.all(15),
@@ -78,10 +78,10 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
                               SizedBox(width: 5,),
 
 //                          Text(widget.tripsHistoryModel!.ratings!)
-                              Text("4,5",
-                                style: TextStyle(
-                                  color: Colors.grey
-                                )
+                              Text(widget.tripsHistoryModel!.ratings ?? "0",
+                                  style: TextStyle(
+                                      color: Colors.grey
+                                  )
                               )
                             ],
                           )
@@ -147,46 +147,46 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
               ),
               SizedBox(height: 10,),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[600],
-                          borderRadius: BorderRadius.circular(2)
-                        ),
-                        child: Icon(Icons.star, color: Colors.white,),
+                  Container(
+                    padding: EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                        color: Colors.blue[600],
+                        borderRadius: BorderRadius.circular(2)
+                    ),
+                    child: Icon(Icons.star, color: Colors.white, size: 16),
+                  ),
+                  SizedBox(width: 15,),
+                  Expanded(
+                    child: Text(widget.tripsHistoryModel!.originAddress!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: darkTheme ? Colors.grey[300] : Colors.black87,
                       ),
-                      SizedBox(width: 15,),
-                      Text(displayHistoryLocationString(widget.tripsHistoryModel!.originAddress!),
-                        textAlign: TextAlign.justify,
-                      )
-                    ],
-                  )
+                    ),
+                  ),
                 ],
               ),
               SizedBox(height: 10,),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(2)
-                        ),
-                        child: Icon(Icons.star, color: Colors.white,),
+                  Container(
+                    padding: EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(2)
+                    ),
+                    child: Icon(Icons.star, color: Colors.white, size: 16),
+                  ),
+                  SizedBox(width: 15,),
+                  Expanded(
+                    child: Text(widget.tripsHistoryModel!.destinationAddress!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: darkTheme ? Colors.grey[300] : Colors.black87,
                       ),
-                      SizedBox(width: 15,),
-                      Text(displayHistoryLocationString(widget.tripsHistoryModel!.destinationAddress!),
-                          textAlign: TextAlign.justify,
-                      )
-                    ],
-                  )
+                    ),
+                  ),
                 ],
               )
             ],
