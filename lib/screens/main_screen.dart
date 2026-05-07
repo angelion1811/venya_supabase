@@ -92,6 +92,7 @@ class _MainScreenState extends State<MainScreen> {
   // Oferta de tarifa que el pasajero puede ingresar manualmente
   final TextEditingController _fareController = TextEditingController();
   final TextEditingController _packageController = TextEditingController();
+  final TextEditingController _waterLitersController = TextEditingController();
 
 
   locateUserPosition() async {
@@ -344,7 +345,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  saveRideRequestInformation(String selectedVehicleType){
+  saveRideRequestInformation(String selectedVehicleType, bool darkTheme){
     referenceRideRequest = FirebaseDatabase.instance.ref().child("All Ride Requests").push();
 
     var originLocation = Provider.of<AppInfo>(context, listen: false).userPickUpLocation;
@@ -365,6 +366,7 @@ class _MainScreenState extends State<MainScreen> {
     // Si el pasajero dejó el campo vacío, guardamos cadena vacía (el conductor verá el estimado)
     final String fareOffer = _fareController.text.trim();
     final String packageDetails = _packageController.text.trim();
+    final String waterLiters = _waterLitersController.text.trim();
 
     Map<String, dynamic> rideInformationMap = {
       "origin": originLocationMap,
@@ -377,8 +379,9 @@ class _MainScreenState extends State<MainScreen> {
       "status":"waiting",
       "driverId":"-",
       "offeredFare": fareOffer,  // oferta del pasajero (vacía si no se ingresó)
-      "estimatedFare": estimatedFare, // tarifa estimada por el sistema
+      "estimatedFare": selectedVehicleType == 'water_truck' ? 'Por definir por el conductor' : estimatedFare, // tarifa estimada
       "packageDetails": packageDetails, // detalles de la encomienda
+      "waterLiters": waterLiters, // litros de agua
       "userId": SupabaseService.currentUser?.id,
     };
 
@@ -448,10 +451,10 @@ class _MainScreenState extends State<MainScreen> {
  */
 
     onlineNearByAvailableDriversList = GeoFireAssistant.activeNearByAvailableDriversList;
-    searchNearestOnlineDrivers(selectedVehicleType, rideInformationMap);
+    searchNearestOnlineDrivers(selectedVehicleType, rideInformationMap, darkTheme);
   }
 
-  searchNearestOnlineDrivers(String selectedVehicleType, Map<String, dynamic> rideInformationMap) async {
+  searchNearestOnlineDrivers(String selectedVehicleType, Map<String, dynamic> rideInformationMap, bool darkTheme) async {
     showUISearchingForDriversContainer();
 
     if(onlineNearByAvailableDriversList.length == 0){
@@ -506,7 +509,50 @@ class _MainScreenState extends State<MainScreen> {
           setState(() => userRideRequestStatus = status.toString());
         }
 
-        if(status == "accepted"){  
+        if(status == "bidding"){
+          dynamic driverOfferedFare = data["driverOfferedFare"];
+          String driverName = data["driverName"] ?? "Un conductor";
+          
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) => AlertDialog(
+              backgroundColor: darkTheme ? Colors.grey[900] : Colors.white,
+              title: Text("Oferta Recibida", style: TextStyle(color: darkTheme ? Colors.white : Colors.black)),
+              content: Text("$driverName ofrece realizar el viaje por \$${driverOfferedFare}", style: TextStyle(color: darkTheme ? Colors.white : Colors.black)),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    // Rechazar: Vuelve a estado 'waiting' para que otros conductores puedan responder.
+                    FirebaseDatabase.instance.ref().child("All Ride Requests").child(referenceRideRequest!.key!).update({
+                      "status": "waiting",
+                      "driverId": "-",
+                      "driverOfferedFare": null,
+                      "driverName": null,
+                    });
+                    Navigator.pop(context);
+                  }, 
+                  child: Text("Rechazar", style: TextStyle(color: Colors.red))
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Aceptar: Cambia el status a 'accepted', setea el fareAmount y asiga al driverId
+                    String driverIdBidding = data["driverIdBidding"] ?? "-";
+                    FirebaseDatabase.instance.ref().child("All Ride Requests").child(referenceRideRequest!.key!).update({
+                      "status": "accepted",
+                      "fareAmount": driverOfferedFare,
+                      "driverId": driverIdBidding,
+                    });
+                    // También notificamos al conductor específicamente guardando en su propio nodo si es necesario
+                    // pero el conductor igual puede escuchar el "All Ride Requests".
+                    Navigator.pop(context);
+                  }, 
+                  child: Text("Aceptar", style: TextStyle(color: Colors.green))
+                ),
+              ]
+            )
+          );
+        } else if(status == "accepted"){  
           getAssignedDriverInfo();
 
         } else if(status == "arrived"){
@@ -708,11 +754,11 @@ class _MainScreenState extends State<MainScreen> {
     socket.onError((err) => print(err));
   }
 
-  showSearchingDriverUI() {
+  showSearchingDriverUI(bool darkTheme) {
     print("llego qui");
     if(selectedVehicleType != ""){
       setState(()=> suggestedRidesContainerHeight = 0);
-      saveRideRequestInformation(selectedVehicleType);
+      saveRideRequestInformation(selectedVehicleType, darkTheme);
     } else {
       Fluttertoast.showToast(msg: "por favor selecciona un vehiculo \n de los viajes sugeridos");
     }
@@ -750,6 +796,7 @@ class _MainScreenState extends State<MainScreen> {
       // Limpiar datos introducidos
       _fareController.clear();
       _packageController.clear();
+      _waterLitersController.clear();
       
       // Limpiar mapa
       polylineSet.clear();
@@ -921,7 +968,7 @@ class _MainScreenState extends State<MainScreen> {
 
             Positioned(
               bottom: 0,
-                left: 0,
+              left: 0,
               right: 0,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(10, 50, 10, 10),
@@ -959,27 +1006,27 @@ class _MainScreenState extends State<MainScreen> {
                                         }
                                       },
                                       child: Row(
-                                      children: [
-                                        Icon(Icons.location_on_outlined, color: darkTheme? Colors.amber.shade400: Colors.blue ),
-                                        SizedBox(width: 10,),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text("Desde",
-                                              style: TextStyle(
-                                                color: darkTheme? Colors.amber.shade400: Colors.blue,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold
-                                              )
-                                            ),
-                                            Text(
-                                              displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
-                                              style: TextStyle(color: Colors.grey, fontSize: 14),
-                                            ),
-                                          ],
-                                        )
-                                      ],
-                                    ),
+                                        children: [
+                                          Icon(Icons.location_on_outlined, color: darkTheme? Colors.amber.shade400: Colors.blue ),
+                                          SizedBox(width: 10,),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text("Desde",
+                                                style: TextStyle(
+                                                  color: darkTheme? Colors.amber.shade400: Colors.blue,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold
+                                                )
+                                              ),
+                                              Text(
+                                                displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
+                                                style: TextStyle(color: Colors.grey, fontSize: 14),
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
                                     ),
                                 ),
                                 SizedBox(height: 5,),
@@ -1036,7 +1083,6 @@ class _MainScreenState extends State<MainScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-
                               ElevatedButton(
                                 onPressed: (){
                                     if(isRouteComplete()){
@@ -1062,8 +1108,8 @@ class _MainScreenState extends State<MainScreen> {
                                     )
                                 ),
                               ),
-
-                          ],)
+                            ],
+                          ),
                         ],
                       )
                     )
@@ -1074,82 +1120,85 @@ class _MainScreenState extends State<MainScreen> {
 
             //Selecting type of car
             Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  height: suggestedRidesContainerHeight,
-                  decoration: BoxDecoration(
-                    color: darkTheme? Colors.black: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(20),
-                      topLeft: Radius.circular(20),
-                    )
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child:Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: darkTheme? Colors.amber.shade400 : Colors.blue,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                              child: Icon(
-                                Icons.star,
-                                color: Colors.white,
-                              ),
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: suggestedRidesContainerHeight,
+                decoration: BoxDecoration(
+                  color: darkTheme? Colors.black: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(20),
+                    topLeft: Radius.circular(20),
+                  )
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                    
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: darkTheme? Colors.amber.shade400 : Colors.blue,
+                              borderRadius: BorderRadius.circular(2),
                             ),
-
-                            SizedBox(width: 15,),
-
-                            Text(displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
+                            child: Icon(
+                              Icons.star,
+                              color: Colors.white,
                             ),
+                          ),
 
-                          ],
-                        ),
+                          SizedBox(width: 15,),
 
-                        SizedBox(height: 20,),
-
-                        Row(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: Colors.grey,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                              child: Icon(
-                                Icons.star,
-                                color: Colors.white,
-                              ),
+                          Text(displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
                             ),
-                            const SizedBox(width: 15,),
-                            Text(
-                              displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
+                          ),
+
+                        ],
+                      ),
+
+                      SizedBox(height: 20,),
+
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius: BorderRadius.circular(2),
                             ),
+                            child: Icon(
+                              Icons.star,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 15,),
+                          Text(
+                            displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
 
-                          ],
-                        ),
+                        ],
+                      ),
 
-                        const SizedBox(height: 20,),
-                        const Text("VIAJES SUGERIDOS", style: TextStyle(fontWeight: FontWeight.bold),),
-                        const SizedBox(height: 20,),
+                      const SizedBox(height: 20,),
+                      const Text("VIAJES SUGERIDOS", style: TextStyle(fontWeight: FontWeight.bold),),
+                      const SizedBox(height: 20,),
 
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             CardVehicleType(
                               darkTheme: darkTheme,
@@ -1194,141 +1243,201 @@ class _MainScreenState extends State<MainScreen> {
                                 selectedVehicleType = "Bike";
                                 estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}';
                                 }),
+                            ),
+                            const SizedBox(width: 5,),
+                            CardVehicleType(
+                              darkTheme: darkTheme,
+                              assetImageString: "images/water_truck.png", // Usa una imagen genérica por si no existe
+                              assetImageScale: 9, // Ajustar según convenga
+                              selectedVehicleType: selectedVehicleType,
+                              vehicleType: "water_truck",
+                              vehicleTypeString: "Agua",
+                              amountString: "",
+                              onTap: ()=>setState((){
+                                selectedVehicleType = "water_truck";
+                                estimatedFare = '0.00';
+                                }),
                             )
                           ],
                         ),
+                      ),
 
-                        const SizedBox(height: 16),
 
-                        // ── Oferta de tarifa opcional ──────────────────────────
-                        Row(
+                      const SizedBox(height: 16),
+
+                      if(selectedVehicleType == "water_truck")
+                        Column(
                           children: [
-                            Icon(
-                              Icons.attach_money,
-                              color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                controller: _fareController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: InputDecoration(
-                                  hintText: tripDirectionDetailsInfo != null
-                                      ? 'Estimado: \$ $estimatedFare - o ingresa tu oferta'
-                                      : 'Tu oferta de tarifa (opcional)',
-                                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                                  prefixText: '\$ ',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.water_drop_outlined,
+                                  color: darkTheme ? Colors.amber.shade400 : Colors.blue,
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _waterLitersController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: InputDecoration(
+                                      hintText: 'Cantidad de Litros de Agua solicitados',
+                                      hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
+                            const SizedBox(height: 16),
                           ],
                         ),
 
-                        const SizedBox(height: 16),
-
-                        // ── Detalles de Encomienda (Opcional) ──────────────────────────
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.inventory_2_outlined,
-                              color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                controller: _packageController,
-                                decoration: InputDecoration(
-                                  hintText: '¿Qué envías? (Encomienda opcional)',
-                                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                    ),
+                      // ── Oferta de tarifa opcional ──────────────────────────
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.attach_money,
+                            color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _fareController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: InputDecoration(
+                                hintText: tripDirectionDetailsInfo != null
+                                    ? 'Estimado: \$ $estimatedFare - o ingresa tu oferta'
+                                    : 'Tu oferta de tarifa (opcional)',
+                                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                prefixText: '\$ ',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
                                   ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                    width: 2,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
 
-                        const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(child: GestureDetector(
-                              onTap: ()=>showSearchingDriverUI(),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                    color: darkTheme ? Colors.amber.shade400:Colors.blue,
-                                    borderRadius: BorderRadius.circular(10)
-                                ),
-                                child: Center(
-                                  child: Text(
-                                      "Solicitar",
-                                      style: TextStyle(
-                                        color: darkTheme? Colors.black: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      )
+                      // ── Detalles de Encomienda (Opcional) ──────────────────────────
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _packageController,
+                              decoration: InputDecoration(
+                                hintText: '¿Qué envías? (Encomienda opcional)',
+                                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
                                   ),
                                 ),
-                              ),
-                            )),
-                            SizedBox(width: 10,),
-                            Expanded(child: GestureDetector(
-                              onTap: ()=>cancelRideRequestInSearchingForDrive(),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(10)
-                                ),
-                                child: Center(
-                                  child: Text(
-                                      "Cancelar",
-                                      style: TextStyle(
-                                        color: darkTheme? Colors.black: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      )
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                    width: 2,
                                   ),
                                 ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               ),
-                            ))
-                          ],
-                        )
+                            ),
+                          ),
+                        ],
+                      ),
 
-                      ],
-                    )
+                      const SizedBox(height: 16),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(child: GestureDetector(
+                            onTap: (){
+                              print("darkTheme: $darkTheme");
+                              showSearchingDriverUI(darkTheme);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                  color: darkTheme ? Colors.amber.shade400:Colors.blue,
+                                  borderRadius: BorderRadius.circular(10)
+                              ),
+                              child: Center(
+                                child: Text(
+                                    "Solicitar",
+                                    style: TextStyle(
+                                      color: darkTheme? Colors.black: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    )
+                                ),
+                              ),
+                            ),
+                          )),
+                          SizedBox(width: 10,),
+                          Expanded(child: GestureDetector(
+                            onTap: ()=>cancelRideRequestInSearchingForDrive(),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10)
+                              ),
+                              child: Center(
+                                child: Text(
+                                    "Cancelar",
+                                    style: TextStyle(
+                                      color: darkTheme? Colors.black: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    )
+                                ),
+                              ),
+                            ),
+                          ))
+                        ],
+                      )
+
+                    ],
                   ),
-                )
+                ),
+              )
             ),
+            
 
             //Requesting  a ride or waiting
             Positioned(
