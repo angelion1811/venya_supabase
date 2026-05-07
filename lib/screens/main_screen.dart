@@ -1041,7 +1041,6 @@ class _MainScreenState extends State<MainScreen> {
                                   child: GestureDetector(
                                     onTap: () async {
                                       //go to search places screen
-//                                      var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchPlacesScreen()));
                                       var responseFromSearch = await Navigator.push(context, MaterialPageRoute(builder: (c)=> PreciseDropOffLocationScreen()));
 
                                       if(responseFromSearch == 'obtainedDropoff'){
@@ -1134,10 +1133,11 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 child: Padding(
                   padding: EdgeInsets.all(20),
-                  child: Column(
+                  child:SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                    
                       Row(
                         children: [
                           Container(
@@ -1433,7 +1433,8 @@ class _MainScreenState extends State<MainScreen> {
                       )
 
                     ],
-                  ),
+                    )
+                  )
                 ),
               )
             ),
