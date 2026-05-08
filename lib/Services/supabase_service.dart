@@ -405,6 +405,7 @@ class SupabaseService {
         'user_name': rideData['userName'],
         'user_phone': rideData['userPhone'],
         'package_details': rideData['packageDetails'],
+        'water_liters': rideData['waterLiters'],
         // Campos opcionales que pueden venir del ride request de Firebase
         'firebase_ride_id': rideData['_id'],
         'driver_id': rideData['driverId'],
@@ -427,6 +428,90 @@ class SupabaseService {
         'success': false,
         'statusCode': 500,
         'errors': <String, dynamic>{'server': <String>['Error al guardar viaje']},
+      };
+    }
+  }
+
+  /// Verifica si un viaje ya fue guardado en Supabase (historial) utilizando el ID de Firebase
+  static Future<bool> isRideSaved(String firebaseRideId) async {
+    try {
+      final result = await client
+          .from('rides')
+          .select('id')
+          .eq('firebase_ride_id', firebaseRideId)
+          .maybeSingle();
+      return result != null;
+    } catch (e) {
+      log('Error en isRideSaved: $e');
+      return false;
+    }
+  }
+
+  /// Verifica si el usuario tiene viajes por calificar (rating es null)
+  static Future<List<Map<String, dynamic>>> getUnratedRides() async {
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return [];
+
+      final rides = await client
+          .from('rides')
+          .select('*, drivers(names, surnames)')
+          .eq('user_id', userId)
+          .filter('rating', 'is', 'null')  // Buscar viajes SIN calificación (rating = NULL)
+          .order('created_at', ascending: false);
+
+      return (rides as List<dynamic>)
+          .map((ride) => (ride as Map<dynamic, dynamic>).cast<String, dynamic>())
+          .toList();
+    } catch (error) {
+      log('Error en getUnratedRides: $error');
+      return [];
+    }
+  }
+
+  /// Obtiene un viaje específico de Supabase por su ID (UUID) para calificar
+  /// Busca por el campo 'id' (UUID de Supabase) o por 'firebase_ride_id'
+  static Future<Map<String, dynamic>?> getRideBySupabaseId(String rideId) async {
+    try {
+      final result = await client
+          .from('rides')
+          .select('*, drivers(names, surnames)')
+          .or('id.eq.$rideId,firebase_ride_id.eq.$rideId')
+          .maybeSingle();
+
+      return result != null ? (result as Map<dynamic, dynamic>).cast<String, dynamic>() : null;
+    } catch (error) {
+      log('Error en getRideById: $error');
+      return null;
+    }
+  }
+
+  /// Actualiza el rating de un viaje existente por su ID de Supabase (UUID)
+  static Future<Map<String, dynamic>> updateRideRating(String supabaseRideId, double rating) async {
+    try {
+      log("Actualizando calificación de viaje $supabaseRideId con rating: $rating");
+
+      final response = await client
+          .from('rides')
+          .update({
+            'rating': rating.toInt(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', supabaseRideId)
+          .select()
+          .single();
+
+      return {
+        'success': true,
+        'statusCode': 200,
+        'data': (response as Map<dynamic, dynamic>).cast<String, dynamic>(),
+      };
+    } catch (error) {
+      log('Error en updateRideRating: $error');
+      return {
+        'success': false,
+        'statusCode': 500,
+        'message': 'Error al actualizar calificación',
       };
     }
   }
@@ -505,8 +590,8 @@ class SupabaseService {
           .eq('firebase_ride_id', firebaseRideId)
           .maybeSingle();
 
-          print("result: $result");
-          print("fare_amount: ${result?['fare_amount']}");
+      print("result: $result");
+      print("fare_amount: ${result?['fare_amount']}");
 
       if (result == null || result['fare_amount'] == null) return null;
       return (result['fare_amount'] as num).toDouble();

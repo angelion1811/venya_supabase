@@ -74,15 +74,30 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
                           Row(
                             children: [
                               Icon(Icons.star, color: Colors.orange, ),
-
                               SizedBox(width: 5,),
-
-//                          Text(widget.tripsHistoryModel!.ratings!)
-                              Text(widget.tripsHistoryModel!.ratings ?? "0",
-                                  style: TextStyle(
-                                      color: Colors.grey
+                              // Si no tiene rating, mostrar "Sin calificar" con badge
+                              if (widget.tripsHistoryModel!.ratings == null || widget.tripsHistoryModel!.ratings!.isEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    "Sin calificar",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Text(widget.tripsHistoryModel!.ratings!,
+                                  style: const TextStyle(
+                                    color: Colors.grey
                                   )
-                              )
+                                )
                             ],
                           )
                         ],
@@ -188,7 +203,28 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
                     ),
                   ),
                 ],
-              )
+              ),
+              if (widget.tripsHistoryModel!.waterLiters != null && widget.tripsHistoryModel!.waterLiters!.isNotEmpty)
+                Column(
+                  children: [
+                    const SizedBox(height: 10,),
+                    Row(
+                      children: [
+                        Icon(Icons.water_drop, color: Colors.blue[600], size: 18),
+                        const SizedBox(width: 15,),
+                        Text(
+                          "Cantidad: ${widget.tripsHistoryModel!.waterLiters!} Litros",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: darkTheme ? Colors.grey[300] : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 10,),
             ],
           ),
         )

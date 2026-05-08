@@ -584,22 +584,27 @@ class _MainScreenState extends State<MainScreen> {
           String originAddress = data['originAddress']?.toString() ?? "";
           String destinationAddress = data['destinationAddress']?.toString() ?? "";
 
-          // Guardamos en Supabase antes de ir a calificar para que el registro ya exista
-          rideInformationMap['_id'] = currentRideId;
-          rideInformationMap['driverId'] = assignedDriverId;
-          rideInformationMap['driverName'] = driverName;
-          rideInformationMap['fareAmount'] = fareAmount;
-          rideInformationMap['status'] = 'ended';
-          await SupabaseService.saveRide(rideInformationMap);
+          // Verificar si el registro ya existe (creado por el conductor)
+          bool isSaved = await SupabaseService.isRideSaved(currentRideId);
+          
+          if (!isSaved) {
+            // Si no está guardado, esperamos 2 segundos por si el conductor tiene lag en la red
+            await Future.delayed(Duration(seconds: 2));
+            isSaved = await SupabaseService.isRideSaved(currentRideId);
+          }
 
-          await Navigator.push(context, MaterialPageRoute(builder: (c)=> TripSummaryScreen(
-            assignedDriverId: assignedDriverId,
-            rideId: currentRideId,
-            driverName: driverName,
-            fareAmount: fareAmount,
-            originAddress: originAddress,
-            destinationAddress: destinationAddress,
-          )));
+          if (isSaved) {
+            await Navigator.push(context, MaterialPageRoute(builder: (c)=> TripSummaryScreen(
+              assignedDriverId: assignedDriverId,
+              rideId: currentRideId,
+              driverName: driverName,
+              fareAmount: fareAmount,
+              originAddress: originAddress,
+              destinationAddress: destinationAddress,
+            )));
+          } else {
+            Fluttertoast.showToast(msg: "El viaje finalizó pero no se guardó el registro.");
+          }
 
           referenceRideRequest!.onDisconnect();
           streamRideRequestDriverLocation!.cancel();
@@ -757,6 +762,12 @@ class _MainScreenState extends State<MainScreen> {
   showSearchingDriverUI(bool darkTheme) {
     print("llego qui");
     if(selectedVehicleType != ""){
+      // Validación específica para camión de agua
+      if(selectedVehicleType == "water_truck" && _waterLitersController.text.trim().isEmpty){
+        Fluttertoast.showToast(msg: "Por favor, introduce la cantidad \nde litros de agua necesarios");
+        return;
+      }
+
       setState(()=> suggestedRidesContainerHeight = 0);
       saveRideRequestInformation(selectedVehicleType, darkTheme);
     } else {
@@ -906,6 +917,7 @@ class _MainScreenState extends State<MainScreen> {
   void dispose() {
     _fareController.dispose();
     _packageController.dispose();
+    _waterLitersController.dispose();
     super.dispose();
   }
 
@@ -1133,250 +1145,263 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 child: Padding(
                   padding: EdgeInsets.all(20),
-                  child:SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: darkTheme? Colors.amber.shade400 : Colors.blue,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                            child: Icon(
-                              Icons.star,
-                              color: Colors.white,
-                            ),
-                          ),
-
-                          SizedBox(width: 15,),
-
-                          Text(displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-
-                        ],
-                      ),
-
-                      SizedBox(height: 20,),
-
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.grey,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                            child: Icon(
-                              Icons.star,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 15,),
-                          Text(
-                            displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-
-                        ],
-                      ),
-
-                      const SizedBox(height: 20,),
-                      const Text("VIAJES SUGERIDOS", style: TextStyle(fontWeight: FontWeight.bold),),
-                      const SizedBox(height: 20,),
-
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            CardVehicleType(
-                              darkTheme: darkTheme,
-                              assetImageString: "images/car.png",
-                              assetImageScale: 9,
-                              selectedVehicleType: selectedVehicleType,
-                              vehicleType: "Car",
-                              vehicleTypeString: "Carro",
-                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1)}'
-                                  : "",
-                              onTap: ()=>setState((){
-                                selectedVehicleType = "Car";
-                                estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1).toStringAsFixed(2)}';
-                                }),
-                            ),
-                            const SizedBox(width: 5,),
-                            CardVehicleType(
-                              darkTheme: darkTheme,
-                              assetImageString: "images/CNG.png",
-                              assetImageScale: 4,
-                              selectedVehicleType: selectedVehicleType,
-                              vehicleType: "CNG",
-                              vehicleTypeString: "CNG",
-                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}'
-                                  : "",
-                              onTap: ()=>setState((){
-                                selectedVehicleType = "CNG";
-                                estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}';
-                                }),
-                            ),
-                            const SizedBox(width: 5,),
-                            CardVehicleType(
-                              darkTheme: darkTheme,
-                              assetImageString: "images/Bike.png",
-                              assetImageScale: 9,
-                              selectedVehicleType: selectedVehicleType,
-                              vehicleType: "Bike",
-                              vehicleTypeString: "Moto",
-                              amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}'
-                                  : "",
-                              onTap: ()=>setState((){
-                                selectedVehicleType = "Bike";
-                                estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}';
-                                }),
-                            ),
-                            const SizedBox(width: 5,),
-                            CardVehicleType(
-                              darkTheme: darkTheme,
-                              assetImageString: "images/water_truck.png", // Usa una imagen genérica por si no existe
-                              assetImageScale: 9, // Ajustar según convenga
-                              selectedVehicleType: selectedVehicleType,
-                              vehicleType: "water_truck",
-                              vehicleTypeString: "Agua",
-                              amountString: "",
-                              onTap: ()=>setState((){
-                                selectedVehicleType = "water_truck";
-                                estimatedFare = '0.00';
-                                }),
-                            )
-                          ],
-                        ),
-                      ),
-
-
-                      const SizedBox(height: 16),
-
-                      if(selectedVehicleType == "water_truck")
-                        Column(
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.water_drop_outlined,
-                                  color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _waterLitersController,
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    decoration: InputDecoration(
-                                      hintText: 'Cantidad de Litros de Agua solicitados',
-                                      hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: darkTheme? Colors.amber.shade400 : Colors.blue,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                    child: Icon(
+                                      Icons.star,
+                                      color: Colors.white,
                                     ),
                                   ),
+
+                                  SizedBox(width: 15,),
+
+                                  Text(displayLocationString(Provider.of<AppInfo>(context).userPickUpLocation),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+
+                                ],
+                              ),
+
+                              SizedBox(height: 20,),
+
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                    child: Icon(
+                                      Icons.star,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 15,),
+                                  Text(
+                                    displayLocationString(Provider.of<AppInfo>(context).userDropOffLocation),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+
+                                ],
+                              ),
+
+                              const SizedBox(height: 20,),
+                              const Text("VIAJES SUGERIDOS", style: TextStyle(fontWeight: FontWeight.bold),),
+                              const SizedBox(height: 20,),
+
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    CardVehicleType(
+                                      darkTheme: darkTheme,
+                                      assetImageString: "images/car.png",
+                                      assetImageScale: 9,
+                                      selectedVehicleType: selectedVehicleType,
+                                      vehicleType: "Car",
+                                      vehicleTypeString: "Carro",
+                                      amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1)}'
+                                          : "",
+                                      onTap: ()=>setState((){
+                                        selectedVehicleType = "Car";
+                                        estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1).toStringAsFixed(2)}';
+                                        }),
+                                    ),
+                                    const SizedBox(width: 5,),
+                                    CardVehicleType(
+                                      darkTheme: darkTheme,
+                                      assetImageString: "images/CNG.png",
+                                      assetImageScale: 4,
+                                      selectedVehicleType: selectedVehicleType,
+                                      vehicleType: "CNG",
+                                      vehicleTypeString: "CNG",
+                                      amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}'
+                                          : "",
+                                      onTap: ()=>setState((){
+                                        selectedVehicleType = "CNG";
+                                        estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}';
+                                        }),
+                                    ),
+                                    const SizedBox(width: 5,),
+                                    CardVehicleType(
+                                      darkTheme: darkTheme,
+                                      assetImageString: "images/b_bike.png",
+                                      assetImageScale: 9,
+                                      selectedVehicleType: selectedVehicleType,
+                                      vehicleType: "Bike",
+                                      vehicleTypeString: "Moto",
+                                      amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}'
+                                          : "",
+                                      onTap: ()=>setState((){
+                                        selectedVehicleType = "Bike";
+                                        estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}';
+                                        }),
+                                    ),
+                                    const SizedBox(width: 5,),
+                                    CardVehicleType(
+                                      darkTheme: darkTheme,
+                                      assetImageString: "images/water_truck.png", // Usa una imagen genérica por si no existe
+                                      assetImageScale: 9, // Ajustar según convenga
+                                      selectedVehicleType: selectedVehicleType,
+                                      vehicleType: "water_truck",
+                                      vehicleTypeString: "Agua",
+                                      amountString: "",
+                                      onTap: ()=>setState((){
+                                        selectedVehicleType = "water_truck";
+                                        estimatedFare = '0.00';
+                                        }),
+                                    )
+                                  ],
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                          ],
+                              ),
+
+
+                              const SizedBox(height: 16),
+
+                              if (selectedVehicleType != "water_truck")
+                                Column(
+                                  children: [
+                                    // ── Detalles de Encomienda (Opcional) ──────────────────────────
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.inventory_2_outlined,
+                                          color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _packageController,
+                                            decoration: InputDecoration(
+                                              hintText: '¿Qué envías? (Encomienda opcional)',
+                                              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                                borderSide: BorderSide(
+                                                  color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                                ),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                                borderSide: BorderSide(
+                                                  color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                                  width: 2,
+                                                ),
+                                              ),
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                ),
+
+                              if(selectedVehicleType == "water_truck")
+                                Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.water_drop_outlined,
+                                          color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _waterLitersController,
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            decoration: InputDecoration(
+                                              hintText: 'Cantidad de Litros de Agua solicitados',
+                                              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                                borderSide: BorderSide(
+                                                  color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                                ),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                                borderSide: BorderSide(
+                                                  color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                                  width: 2,
+                                                ),
+                                              ),
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                ),
+
+                              // ── Oferta de tarifa opcional ──────────────────────────
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.attach_money,
+                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _fareController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: InputDecoration(
+                                        hintText: tripDirectionDetailsInfo != null
+                                            ? 'Estimado: \$ $estimatedFare - o ingresa tu oferta'
+                                            : 'Tu oferta de tarifa (opcional)',
+                                        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                        prefixText: '\$ ',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: BorderSide(
+                                            color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: BorderSide(
+                                            color: darkTheme ? Colors.amber.shade400 : Colors.blue,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 16),
+                            ],
+                          ),
                         ),
-
-                      // ── Oferta de tarifa opcional ──────────────────────────
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.attach_money,
-                            color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _fareController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: InputDecoration(
-                                hintText: tripDirectionDetailsInfo != null
-                                    ? 'Estimado: \$ $estimatedFare - o ingresa tu oferta'
-                                    : 'Tu oferta de tarifa (opcional)',
-                                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                                prefixText: '\$ ',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // ── Detalles de Encomienda (Opcional) ──────────────────────────
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.inventory_2_outlined,
-                            color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _packageController,
-                              decoration: InputDecoration(
-                                hintText: '¿Qué envías? (Encomienda opcional)',
-                                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
 
                       const SizedBox(height: 16),
@@ -1433,7 +1458,6 @@ class _MainScreenState extends State<MainScreen> {
                       )
 
                     ],
-                    )
                   )
                 ),
               )

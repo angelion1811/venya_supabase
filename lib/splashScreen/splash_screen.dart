@@ -8,10 +8,12 @@ import 'package:provider/provider.dart';
 import 'package:ven_app/Assistants/assistant_methods.dart';
 import 'package:ven_app/Services/supabase_service.dart';
 import 'package:ven_app/global/global.dart';
+import 'package:ven_app/models/trips_history_model.dart';
 import 'package:ven_app/models/user_model.dart';
 import 'package:ven_app/screens/login_screen.dart';
 import 'package:ven_app/screens/main_screen.dart';
 import 'package:ven_app/screens/register_documents_screen.dart';
+import 'package:ven_app/screens/trip_history_screen.dart';
 
 import '../infoHandler/app_info.dart';
 
@@ -23,6 +25,38 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+
+  Future<void> _loadTripsHistory(BuildContext context) async {
+    try {
+      final res = await SupabaseService.getRidesHistory();
+      if (res['statusCode'] == 200 && res['data'] != null) {
+        final rides = res['data'] as List<Map<String, dynamic>>;
+        final appInfo = Provider.of<AppInfo>(context, listen: false);
+        // Limpiar lista previa
+        appInfo.allTripsHistoryInformationList.clear();
+        for (final ride in rides) {
+          appInfo.allTripsHistoryInformationList.add(TripsHistoryModel.fromJson(ride));
+        }
+      }
+    } catch (e) {
+      log('Error cargando historial: $e');
+    }
+  }
+
+  void _navigateToMainScreen() {
+    Navigator.push(context, MaterialPageRoute(builder: (c) => MainScreen()));
+  }
+
+  /// Consulta si hay viajes sin calificar y redirige al historial con flag de calificación
+  Future<bool> _hasUnratedRides() async {
+    try {
+      final unratedRides = await SupabaseService.getUnratedRides();
+      return unratedRides.isNotEmpty;
+    } catch (e) {
+      log('Error consultando viajes sin calificar: $e');
+      return false;
+    }
+  }
 
   startTimer(){
     Timer(Duration(seconds: 3), ()async{
@@ -70,7 +104,20 @@ class _SplashScreenState extends State<SplashScreen> {
               context, MaterialPageRoute(builder: (c) => LoginScreen()));
           return;
         }
-        Navigator.push(context, MaterialPageRoute(builder: (c) => MainScreen()));
+
+        // Cargar historial de viajes en segundo plano
+        await _loadTripsHistory(context);
+
+        // Consultar si hay viajes por calificar y redirigir al historial si aplica
+        if (await _hasUnratedRides()) {
+          // Navegar al historial de viajes con flag para mostrar solo viajes por calificar
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (c) => TripHistoryScreen(showUnratedOnly: true)),
+          );
+        }
+
+        _navigateToMainScreen();
       } catch(e){
         log('error $e');
         await SupabaseService.logout();

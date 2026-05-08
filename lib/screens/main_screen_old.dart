@@ -957,7 +957,7 @@ class _MainScreenOldState extends State<MainScreenOld> {
                             const SizedBox(width: 5,),
                             CardVehicleType(
                               darkTheme: darkTheme,
-                              assetImageString: "images/Bike.png",
+                              assetImageString: "images/b_bike.png",
                               assetImageScale: 9,
                               selectedVehicleType: selectedVehicleType,
                               vehicleType: "Bike",

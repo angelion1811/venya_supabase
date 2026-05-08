@@ -1,7 +1,9 @@
 
+import 'dart:developer';
 import 'package:firebase_database/firebase_database.dart';
 
 class TripsHistoryModel {
+  String? id; // ID de Supabase (UUID) del viaje - permite calificar un ride existente
   String? time;
   String? originAddress;
   String? destinationAddress;
@@ -10,8 +12,11 @@ class TripsHistoryModel {
   String? car_details;
   String? driverName;
   String? ratings;
+  String? waterLiters;
+  String? vehicleType; // Para identificar si es water_truck
 
   TripsHistoryModel({
+    this.id,
     this.time,
     this.originAddress,
     this.destinationAddress,
@@ -20,9 +25,12 @@ class TripsHistoryModel {
     this.car_details,
     this.driverName,
     this.ratings,
+    this.waterLiters,
+    this.vehicleType,
   });
 
   TripsHistoryModel.fromSnapshot(DataSnapshot dataSnapshot){
+    id = (dataSnapshot.value as Map)["id"];
     time = (dataSnapshot.value as Map)["time"];
     originAddress = (dataSnapshot.value as Map)["originAddress"];
     destinationAddress = (dataSnapshot.value as Map)["destinationAddress"];
@@ -31,15 +39,18 @@ class TripsHistoryModel {
     car_details = (dataSnapshot.value as Map)["car_details"];
     driverName = (dataSnapshot.value as Map)["driverName"];
     ratings = (dataSnapshot.value as Map)["ratings"];
+    waterLiters = (dataSnapshot.value as Map)["waterLiters"];
   }
 
   TripsHistoryModel.fromJson(Map<String, dynamic> json){
+    id = json["id"] as String?; // Capturar ID de Supabase (UUID)
     time = json["created_at"] ?? DateTime.now().toIso8601String();
     originAddress = json["origin_address"] ?? "Desconocido";
     destinationAddress = json["destination_address"] ?? "Desconocido";
     status = json["status"] ?? "Desconocido";
     fareAmount = json["fare_amount"]?.toString() ?? "0";
-    
+    vehicleType = json["vehicle_type"]?.toString();
+
     // Parse driver details if joined
     if (json["drivers"] != null) {
       final driver = json["drivers"] as Map;
@@ -48,9 +59,10 @@ class TripsHistoryModel {
     } else {
       driverName = json["driver_name"] ?? "Conductor";
     }
-    
-    // ratings and car_details might not be readily available in the simple query
-    ratings = json["rating"]?.toString() ?? "N/A";
+
+    // ratings: null si no tiene calificación, de lo contrario el valor
+    ratings = json["rating"]?.toString();
     car_details = json["vehicle_type"] ?? "";
+    waterLiters = json["water_liters"]?.toString() ?? "";
   }
 }
