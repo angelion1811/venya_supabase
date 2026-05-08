@@ -155,28 +155,31 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
                   )
                 ]
               ),
-              SizedBox(height: 10,),
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                        color: Colors.blue[600],
-                        borderRadius: BorderRadius.circular(2)
+              // Mostrar origen solo si NO es viaje de agua
+              if (widget.tripsHistoryModel!.waterLiters == null || widget.tripsHistoryModel!.waterLiters!.isEmpty) ...[
+                SizedBox(height: 10,),
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                          color: Colors.blue[600],
+                          borderRadius: BorderRadius.circular(2)
+                      ),
+                      child: Icon(Icons.star, color: Colors.white, size: 16),
                     ),
-                    child: Icon(Icons.star, color: Colors.white, size: 16),
-                  ),
-                  SizedBox(width: 15,),
-                  Expanded(
-                    child: Text(widget.tripsHistoryModel!.originAddress!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: darkTheme ? Colors.grey[300] : Colors.black87,
+                    SizedBox(width: 15,),
+                    Expanded(
+                      child: Text(widget.tripsHistoryModel!.originAddress!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: darkTheme ? Colors.grey[300] : Colors.black87,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
               SizedBox(height: 10,),
               Row(
                 children: [
