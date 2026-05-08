@@ -63,14 +63,9 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(widget.tripsHistoryModel!.driverName!,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
+                          // Mostrar nombre y apellido del conductor separados
+                          _buildNameDisplay(widget.tripsHistoryModel!.driverName ?? "Conductor", darkTheme),
                           SizedBox(height: 8,),
-
                           Row(
                             children: [
                               Icon(Icons.star, color: Colors.orange, ),
@@ -229,6 +224,41 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
           ),
         )
 
+      ],
+    );
+  }
+
+  Widget _buildNameDisplay(String fullName, bool isDarkTheme) {
+    // Separar nombre y apellido
+    final parts = fullName.trim().split(' ');
+    String firstName = "";
+    String lastName = "";
+
+    if (parts.isNotEmpty) {
+      firstName = parts[0];
+    }
+    if (parts.length > 1) {
+      // Tomar solo el primer apellido
+      lastName = parts[1];
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          firstName,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        if (lastName.isNotEmpty)
+          Text(
+            lastName,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDarkTheme ? Colors.grey[400] : Colors.grey[600],
+            ),
+          ),
       ],
     );
   }
