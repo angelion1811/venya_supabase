@@ -51,12 +51,21 @@ class _HistoryDesignUIWidgetState extends State<HistoryDesignUIWidget> {
                   Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.all(10),
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
                           color: Colors.lightBlue,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
+                          image: widget.tripsHistoryModel?.driverPhoto != null && widget.tripsHistoryModel!.driverPhoto!.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(widget.tripsHistoryModel!.driverPhoto!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
-                        child: Icon(Icons.person, color: Colors.white),
+                        child: widget.tripsHistoryModel?.driverPhoto == null || widget.tripsHistoryModel!.driverPhoto!.isEmpty
+                            ? const Icon(Icons.person, color: Colors.white, size: 30)
+                            : null,
                       ),
 
                       SizedBox(width: 15,),

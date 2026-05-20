@@ -11,6 +11,7 @@ class TripsHistoryModel {
   String? fareAmount;
   String? car_details;
   String? driverName;
+  String? driverPhoto; // Foto de perfil del conductor
   String? ratings;
   String? waterLiters;
   String? vehicleType; // Para identificar si es water_truck
@@ -24,6 +25,7 @@ class TripsHistoryModel {
     this.fareAmount,
     this.car_details,
     this.driverName,
+    this.driverPhoto,
     this.ratings,
     this.waterLiters,
     this.vehicleType,
@@ -56,6 +58,10 @@ class TripsHistoryModel {
       final driver = json["drivers"] as Map;
       driverName = "${driver["names"] ?? ""} ${driver["surnames"] ?? ""}".trim();
       if (driverName!.isEmpty) driverName = "Conductor";
+      if (driver["documents"] != null) {
+        final docs = driver["documents"] as Map;
+        driverPhoto = docs["imageSelfie"];
+      }
     } else {
       driverName = json["driver_name"] ?? "Conductor";
     }

@@ -455,7 +455,7 @@ class SupabaseService {
 
       final rides = await client
           .from('rides')
-          .select('*, drivers(names, surnames)')
+          .select('*, drivers(names, surnames, documents)')
           .eq('user_id', userId)
           .filter('rating', 'is', 'null')  // Buscar viajes SIN calificación (rating = NULL)
           .order('created_at', ascending: false);
@@ -530,7 +530,7 @@ class SupabaseService {
 
       final rides = await client
           .from('rides')
-          .select('*, drivers(names, surnames)')
+          .select('*, drivers(names, surnames, documents)')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
