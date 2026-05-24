@@ -7,6 +7,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
+import '../models/vehicle_type_model.dart';
 
 /// Servicio de Supabase que reemplaza las llamadas al backend personalizado
 /// Maneja autenticación, base de datos y storage
@@ -607,6 +608,25 @@ class SupabaseService {
         fontSize: 16.0,
       );
       return null;
+    }
+  }
+
+  // ========== VEHICLE TYPES ==========
+
+  static Future<List<VehicleType>> getActiveVehicleTypes() async {
+    try {
+      final response = await client
+          .from('vehicle_types')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order');
+
+      return (response as List<dynamic>)
+          .map((e) => VehicleType.fromJson((e as Map<dynamic, dynamic>).cast<String, dynamic>()))
+          .toList();
+    } catch (error) {
+      log('Error en getActiveVehicleTypes: $error');
+      return [];
     }
   }
 

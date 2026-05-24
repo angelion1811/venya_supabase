@@ -28,6 +28,7 @@ import '../widgets/pay_fare_amount_dialog.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../Assistants/socket_assistant.dart';
 import '../models/directions.dart';
+import '../models/vehicle_type_model.dart';
 
 Future<void> _makePhoneCall(String url) async {
   if (!await launchUrl(Uri.parse(url))) {
@@ -82,6 +83,7 @@ class _MainScreenState extends State<MainScreen> {
   DatabaseReference? referenceRideRequest;
   String selectedVehicleType = "";
   String estimatedFare = "0.00";
+  List<VehicleType>? _vehicleTypes;
   String driverRideStatus = "Driver is coming";
   StreamSubscription<DatabaseEvent>? tripRideRequestInfoStreamSubscription;
   StreamSubscription<DatabaseEvent>? streamRideRequestStatus;
@@ -119,6 +121,124 @@ class _MainScreenState extends State<MainScreen> {
     userName = userModelCurrentInfo!.names!;
     useEmail = userModelCurrentInfo!.email!;
     AssistantMethods.readTripsHistoryFromSupabase(context);
+    _loadVehicleTypes();
+  }
+
+  Future<void> _loadVehicleTypes() async {
+    final types = await SupabaseService.getActiveVehicleTypes();
+    if (mounted) {
+      setState(() => _vehicleTypes = types);
+    }
+  }
+
+  String _getImageForVehicleType(String key) {
+    switch (key) {
+      case 'Car':
+        return 'images/car.png';
+      case 'CNG':
+        return 'images/CNG.png';
+      case 'Bike':
+        return 'images/b_bike.png';
+      case 'water_truck':
+        return 'images/water_truck.png';
+      default:
+        return 'images/car.png';
+    }
+  }
+
+  double _getImageScaleForVehicleType(String key) {
+    switch (key) {
+      case 'Car':
+        return 9;
+      case 'CNG':
+        return 4;
+      case 'Bike':
+        return 9;
+      case 'water_truck':
+        return 9;
+      default:
+        return 9;
+    }
+  }
+
+  VehicleType? _getSelectedVehicleTypeObj() {
+    if (_vehicleTypes == null || selectedVehicleType.isEmpty) return null;
+    try {
+      return _vehicleTypes!.firstWhere((v) => v.key == selectedVehicleType);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<Widget> _buildVehicleTypeCards(bool darkTheme) {
+    if (_vehicleTypes == null || _vehicleTypes!.isEmpty) {
+      return [];
+    }
+
+    final baseFare = tripDirectionDetailsInfo != null
+        ? AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!)
+        : 0.0;
+
+    return _vehicleTypes!.map((vt) {
+      final bool isSelected = selectedVehicleType == vt.key;
+      final String fareDisplay;
+      final String estimatedFareValue;
+
+      if (vt.hasCustomFare) {
+        fareDisplay = '';
+        estimatedFareValue = '0.00';
+      } else {
+        final fare = (baseFare * vt.fareMultiplier * 1).toStringAsFixed(2);
+        fareDisplay = tripDirectionDetailsInfo != null ? '\$ $fare' : '';
+        estimatedFareValue = fare;
+      }
+
+      return Padding(
+        padding: const EdgeInsets.only(right: 5),
+        child: CardVehicleType(
+          darkTheme: darkTheme,
+          assetImageString: _getImageForVehicleType(vt.key),
+          assetImageScale: _getImageScaleForVehicleType(vt.key),
+          selectedVehicleType: selectedVehicleType,
+          vehicleType: vt.key,
+          vehicleTypeString: vt.name,
+          amountString: fareDisplay,
+          onTap: () => setState(() {
+            selectedVehicleType = vt.key;
+            estimatedFare = estimatedFareValue;
+            if (!vt.hasCustomFare) {
+              _waterLitersController.clear();
+            }
+          }),
+        ),
+      );
+    }).toList();
+  }
+
+  bool _vehicleTypeHasExtraFields(String key) {
+    final vt = _vehicleTypes?.firstWhere(
+      (v) => v.key == key,
+      orElse: () => VehicleType(
+        id: '', key: key, name: '', fareMultiplier: 1, hasCustomFare: false, isActive: true, displayOrder: 0,
+      ),
+    );
+    return vt?.extraFields != null && vt!.extraFields!.isNotEmpty;
+  }
+
+  Map<String, dynamic>? _getExtraFieldConfig(String vehicleKey, String fieldKey) {
+    final vt = _vehicleTypes?.firstWhere(
+      (v) => v.key == vehicleKey,
+      orElse: () => VehicleType(
+        id: '', key: vehicleKey, name: '', fareMultiplier: 1, hasCustomFare: false, isActive: true, displayOrder: 0,
+      ),
+    );
+    if (vt?.extraFields == null) return null;
+    for (final field in vt!.extraFields!) {
+      if (field is Map && field['field_key'] == fieldKey) {
+        return Map<String, dynamic>.from(field);
+      }
+    }
+    return null;
   }
 
   initializeGeoFireListener(){
@@ -379,7 +499,7 @@ class _MainScreenState extends State<MainScreen> {
       "status":"waiting",
       "driverId":"-",
       "offeredFare": fareOffer,  // oferta del pasajero (vacía si no se ingresó)
-      "estimatedFare": selectedVehicleType == 'water_truck' ? 'Por definir por el conductor' : estimatedFare, // tarifa estimada
+      "estimatedFare": (_getSelectedVehicleTypeObj()?.hasCustomFare ?? false) ? 'Por definir por el conductor' : estimatedFare, // tarifa estimada
       "packageDetails": packageDetails, // detalles de la encomienda
       "waterLiters": waterLiters, // litros de agua
       "userId": SupabaseService.currentUser?.id,
@@ -763,7 +883,7 @@ class _MainScreenState extends State<MainScreen> {
     print("llego qui");
     if(selectedVehicleType != ""){
       // Validación específica para camión de agua
-      if(selectedVehicleType == "water_truck" && _waterLitersController.text.trim().isEmpty){
+      if(_vehicleTypeHasExtraFields(selectedVehicleType) && _waterLitersController.text.trim().isEmpty){
         Fluttertoast.showToast(msg: "Por favor, introduce la cantidad \nde litros de agua necesarios");
         return;
       }
@@ -1214,73 +1334,14 @@ class _MainScreenState extends State<MainScreen> {
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    CardVehicleType(
-                                      darkTheme: darkTheme,
-                                      assetImageString: "images/car.png",
-                                      assetImageScale: 9,
-                                      selectedVehicleType: selectedVehicleType,
-                                      vehicleType: "Car",
-                                      vehicleTypeString: "Carro",
-                                      amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1)}'
-                                          : "",
-                                      onTap: ()=>setState((){
-                                        selectedVehicleType = "Car";
-                                        estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 2)*1).toStringAsFixed(2)}';
-                                        }),
-                                    ),
-                                    const SizedBox(width: 5,),
-                                    CardVehicleType(
-                                      darkTheme: darkTheme,
-                                      assetImageString: "images/CNG.png",
-                                      assetImageScale: 4,
-                                      selectedVehicleType: selectedVehicleType,
-                                      vehicleType: "CNG",
-                                      vehicleTypeString: "CNG",
-                                      amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}'
-                                          : "",
-                                      onTap: ()=>setState((){
-                                        selectedVehicleType = "CNG";
-                                        estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1.5)*1).toStringAsFixed(2)}';
-                                        }),
-                                    ),
-                                    const SizedBox(width: 5,),
-                                    CardVehicleType(
-                                      darkTheme: darkTheme,
-                                      assetImageString: "images/b_bike.png",
-                                      assetImageScale: 9,
-                                      selectedVehicleType: selectedVehicleType,
-                                      vehicleType: "Bike",
-                                      vehicleTypeString: "Moto",
-                                      amountString:tripDirectionDetailsInfo != null?'\$ ${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}'
-                                          : "",
-                                      onTap: ()=>setState((){
-                                        selectedVehicleType = "Bike";
-                                        estimatedFare ='${((AssistantMethods.calculateFareAroundFromOriginToDestination(tripDirectionDetailsInfo!) * 1)*1).toStringAsFixed(2)}';
-                                        }),
-                                    ),
-                                    const SizedBox(width: 5,),
-                                    CardVehicleType(
-                                      darkTheme: darkTheme,
-                                      assetImageString: "images/water_truck.png", // Usa una imagen genérica por si no existe
-                                      assetImageScale: 9, // Ajustar según convenga
-                                      selectedVehicleType: selectedVehicleType,
-                                      vehicleType: "water_truck",
-                                      vehicleTypeString: "Agua",
-                                      amountString: "",
-                                      onTap: ()=>setState((){
-                                        selectedVehicleType = "water_truck";
-                                        estimatedFare = '0.00';
-                                        }),
-                                    )
-                                  ],
+                                  children: _buildVehicleTypeCards(darkTheme),
                                 ),
                               ),
 
 
                               const SizedBox(height: 16),
 
-                              if (selectedVehicleType != "water_truck")
+                              if (!(_getSelectedVehicleTypeObj()?.hasCustomFare ?? false) && !_vehicleTypeHasExtraFields(selectedVehicleType))
                                 Column(
                                   children: [
                                     // ── Detalles de Encomienda (Opcional) ──────────────────────────
@@ -1320,7 +1381,7 @@ class _MainScreenState extends State<MainScreen> {
                                   ],
                                 ),
 
-                              if(selectedVehicleType == "water_truck")
+                              if(_vehicleTypeHasExtraFields(selectedVehicleType))
                                 Column(
                                   children: [
                                     Row(
