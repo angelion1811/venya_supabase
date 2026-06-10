@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -84,6 +86,8 @@ class _MainScreenState extends State<MainScreen> {
   String selectedVehicleType = "";
   String estimatedFare = "0.00";
   List<VehicleType>? _vehicleTypes;
+  Map<String, String> _vehicleTypeImagePaths = {};
+  Map<String, double> _vehicleTypeImageScales = {};
   String driverRideStatus = "Driver is coming";
   StreamSubscription<DatabaseEvent>? tripRideRequestInfoStreamSubscription;
   StreamSubscription<DatabaseEvent>? streamRideRequestStatus;
@@ -126,38 +130,33 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _loadVehicleTypes() async {
     final types = await SupabaseService.getActiveVehicleTypes();
+    final paths = <String, String>{};
+    final scales = <String, double>{};
+
+    for (final vt in types) {
+      paths[vt.key] = await _resolveAssetPath(vt.iconName);
+      scales[vt.key] = paths[vt.key] == 'images/CNG.png' ? 4.0 : 9.0;
+    }
+
     if (mounted) {
-      setState(() => _vehicleTypes = types);
+      setState(() {
+        _vehicleTypes = types;
+        _vehicleTypeImagePaths = paths;
+        _vehicleTypeImageScales = scales;
+      });
     }
   }
 
-  String _getImageForVehicleType(String key) {
-    switch (key) {
-      case 'Car':
-        return 'images/car.png';
-      case 'CNG':
-        return 'images/CNG.png';
-      case 'Bike':
-        return 'images/b_bike.png';
-      case 'water_truck':
-        return 'images/water_truck.png';
-      default:
-        return 'images/car.png';
-    }
-  }
+  Future<String> _resolveAssetPath(String? iconName) async {
+    const fallback = 'images/car.png';
+    if (iconName == null || iconName.isEmpty) return fallback;
 
-  double _getImageScaleForVehicleType(String key) {
-    switch (key) {
-      case 'Car':
-        return 9;
-      case 'CNG':
-        return 4;
-      case 'Bike':
-        return 9;
-      case 'water_truck':
-        return 9;
-      default:
-        return 9;
+    final path = 'images/$iconName.png';
+    try {
+      await rootBundle.load(path);
+      return path;
+    } catch (_) {
+      return fallback;
     }
   }
 
@@ -197,8 +196,8 @@ class _MainScreenState extends State<MainScreen> {
         padding: const EdgeInsets.only(right: 5),
         child: CardVehicleType(
           darkTheme: darkTheme,
-          assetImageString: _getImageForVehicleType(vt.key),
-          assetImageScale: _getImageScaleForVehicleType(vt.key),
+          assetImageString: _vehicleTypeImagePaths[vt.key] ?? 'images/car.png',
+          assetImageScale: _vehicleTypeImageScales[vt.key] ?? 9,
           selectedVehicleType: selectedVehicleType,
           vehicleType: vt.key,
           vehicleTypeString: vt.name,
