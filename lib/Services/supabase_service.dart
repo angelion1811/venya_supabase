@@ -7,6 +7,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
+import '../models/fare_hour_multiplier_model.dart';
 import '../models/vehicle_type_model.dart';
 
 /// Servicio de Supabase que reemplaza las llamadas al backend personalizado
@@ -619,13 +620,32 @@ class SupabaseService {
           .from('vehicle_types')
           .select('*')
           .eq('is_active', true)
-          .order('display_order');
+          .order('display_order', ascending: true);
 
       return (response as List<dynamic>)
           .map((e) => VehicleType.fromJson((e as Map<dynamic, dynamic>).cast<String, dynamic>()))
           .toList();
     } catch (error) {
       log('Error en getActiveVehicleTypes: $error');
+      return [];
+    }
+  }
+
+  /// Obtiene los multiplicadores horarios activos para todos los tipos de vehículo que aplican al intervalo de hora actual
+  static Future<List<FareHourMultiplier>> getActiveFareHourMultipliers() async {
+    try {
+      final response = await client
+          .from('fare_hour_multipliers')
+          .select('*')
+          .eq('is_active', true);
+
+      final allMultipliers = (response as List<dynamic>)
+          .map((e) => FareHourMultiplier.fromJson((e as Map<dynamic, dynamic>).cast<String, dynamic>()))
+          .toList();
+
+      return allMultipliers.where((multiplier) => multiplier.isCurrentTimeInRange()).toList();
+    } catch (error) {
+      log('Error en getActiveFareHourMultipliers: $error');
       return [];
     }
   }

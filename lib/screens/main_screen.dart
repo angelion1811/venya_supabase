@@ -31,6 +31,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../Assistants/socket_assistant.dart';
 import '../models/directions.dart';
 import '../models/vehicle_type_model.dart';
+import '../models/fare_hour_multiplier_model.dart';
 
 Future<void> _makePhoneCall(String url) async {
   if (!await launchUrl(Uri.parse(url))) {
@@ -86,6 +87,7 @@ class _MainScreenState extends State<MainScreen> {
   String selectedVehicleType = "";
   String estimatedFare = "0.00";
   List<VehicleType>? _vehicleTypes;
+  List<FareHourMultiplier> _fareHourMultipliers = [];
   Map<String, String> _vehicleTypeImagePaths = {};
   Map<String, double> _vehicleTypeImageScales = {};
   String driverRideStatus = "Driver is coming";
@@ -125,26 +127,18 @@ class _MainScreenState extends State<MainScreen> {
     userName = userModelCurrentInfo!.names!;
     useEmail = userModelCurrentInfo!.email!;
     AssistantMethods.readTripsHistoryFromSupabase(context);
-    _loadVehicleTypes();
   }
 
-  Future<void> _loadVehicleTypes() async {
-    final types = await SupabaseService.getActiveVehicleTypes();
-    final paths = <String, String>{};
-    final scales = <String, double>{};
-
-    for (final vt in types) {
-      paths[vt.key] = await _resolveAssetPath(vt.iconName);
-      scales[vt.key] = paths[vt.key] == 'images/CNG.png' ? 4.0 : 9.0;
+  double _getHourMultiplier(String vehicleTypeId) {
+    if (_fareHourMultipliers.isEmpty) return 1.0;
+    for (final multiplier in _fareHourMultipliers) {
+      if (multiplier.vehicleTypeId == vehicleTypeId && multiplier.isActive) {
+        if (multiplier.isCurrentTimeInRange()) {
+          return multiplier.multiplier;
+        }
+      }
     }
-
-    if (mounted) {
-      setState(() {
-        _vehicleTypes = types;
-        _vehicleTypeImagePaths = paths;
-        _vehicleTypeImageScales = scales;
-      });
-    }
+    return 1.0;
   }
 
   Future<String> _resolveAssetPath(String? iconName) async {
@@ -187,7 +181,8 @@ class _MainScreenState extends State<MainScreen> {
         fareDisplay = '';
         estimatedFareValue = '0.00';
       } else {
-        final fare = (baseFare * vt.fareMultiplier * 1).toStringAsFixed(2);
+        final hourMult = _getHourMultiplier(vt.id);
+        final fare = (baseFare * vt.fareMultiplier * hourMult).toStringAsFixed(2);
         fareDisplay = tripDirectionDetailsInfo != null ? '\$ $fare' : '';
         estimatedFareValue = fare;
       }
@@ -447,11 +442,42 @@ class _MainScreenState extends State<MainScreen> {
     setState(()=>searchingForDriverContainerHeight = 200);
   }
 
-  void showSuggestedRidesContainer(){
-    setState(() {
-      suggestedRidesContainerHeight = 550;
-      bottonPaddingOfMap = 550;
-    });
+  Future<void> showSuggestedRidesContainer() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => ProgressDialog(message: "Cargando tarifas...",)
+    );
+
+    try {
+      final types = await SupabaseService.getActiveVehicleTypes();
+      final multipliers = await SupabaseService.getActiveFareHourMultipliers();
+      final paths = <String, String>{};
+      final scales = <String, double>{};
+
+      for (final vt in types) {
+        paths[vt.key] = await _resolveAssetPath(vt.iconName);
+        scales[vt.key] = paths[vt.key] == 'images/CNG.png' ? 4.0 : 9.0;
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        setState(() {
+          _vehicleTypes = types;
+          _fareHourMultipliers = multipliers;
+          _vehicleTypeImagePaths = paths;
+          _vehicleTypeImageScales = scales;
+          suggestedRidesContainerHeight = 550;
+          bottonPaddingOfMap = 550;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      log("Error al cargar tarifas y vehículos: $e");
+      Fluttertoast.showToast(msg: "Error al obtener tarifas actuales. Inténtelo de nuevo.");
+    }
   }
 
   checkIfLocationPermissionAllowed() async {
@@ -1003,6 +1029,8 @@ class _MainScreenState extends State<MainScreen> {
     driverRatings = "";
     driverRideStatus = "Chofer está viniendo";
     userRideRequestStatus = "";
+    _fareHourMultipliers = [];
+    _vehicleTypes = null;
     
     // Limpiar los controladores de texto
     _fareController.clear();
@@ -1214,9 +1242,9 @@ class _MainScreenState extends State<MainScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               ElevatedButton(
-                                onPressed: (){
+                                onPressed: () async {
                                     if(isRouteComplete()){
-                                      showSuggestedRidesContainer();
+                                      await showSuggestedRidesContainer();
                                     }else{
                                       Fluttertoast.showToast(msg: "Por favor seleccionar \n ubicación de destino");
                                     }
