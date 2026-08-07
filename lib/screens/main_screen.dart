@@ -625,10 +625,22 @@ class _MainScreenState extends State<MainScreen> {
 
     //en este ciclo se le envia la notificacion push con el token que tienes
     for(int i = 0; i < driversList.length; i++){
-      if(driversList[i]["car_details"]["type"] == selectedVehicleType && driversList[i]["token"] != null){
-        Fluttertoast.showToast(msg: "Notification a user ${i} y es el driver ${driversList[i]["token"]}");
+      final driverData = driversList[i] as Map?;
+      if(driverData == null) continue;
+
+      // Determinar el tipo de vehiculo activo del conductor
+      // Esquema nuevo: active_vehicle_type (multi-vehiculo, uno activo a la vez)
+      // Esquema legacy: car_details.type
+      final driverVehicleType =
+          driverData["active_vehicle_type"] ??
+          (driverData["car_details"] != null ? driverData["car_details"]["type"] : null);
+
+      final driverToken = driverData["token"];
+
+      if(driverVehicleType == selectedVehicleType && driverToken != null){
+        Fluttertoast.showToast(msg: "Notification a user ${i} y es el driver $driverToken");
         AssistantMethods.sendNotificationToDriverNow(
-          driversList[i]["token"],
+          driverToken,
           referenceRideRequest!.key!,
           context,
           destinationAddress: rideInformationMap["destinationAddress"] ?? '',

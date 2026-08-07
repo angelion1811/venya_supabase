@@ -875,6 +875,7 @@ class SupabaseService {
         functionName,
         body: body,
       );
+      log('Supabase Edge Function "$functionName" status: ${response.status}');
       return response;
     } catch (error) {
       log('Error invoking function $functionName: $error');

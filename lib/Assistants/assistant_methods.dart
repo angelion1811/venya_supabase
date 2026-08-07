@@ -149,7 +149,11 @@ class AssistantMethods {
     context, {
     String destinationAddress = '',
   }) async {
-    print("sendNotificationToDriverNow");
+    print("sendNotificationToDriverNow token: $deviceRegistrationToken");
+    if (deviceRegistrationToken.isEmpty) {
+      print("Error: device token is empty, skipping notification");
+      return;
+    }
     // Fallback to global if not passed explicitly
     final address = destinationAddress.isNotEmpty ? destinationAddress : userDropOffAddress;
 
@@ -171,10 +175,13 @@ class AssistantMethods {
         },
       );
 
-      print("Notification Edge Function response: ${response.data}");
+      print("Notification Edge Function status: ${response.status}");
+      print("Notification Edge Function data: ${response.data}");
     } catch (e) {
       print("Error sending notification: $e");
     }
+
+    return;
   }
 
 
@@ -274,6 +281,4 @@ class AssistantMethods {
       return false;
     }
   }
-
-    
 }
