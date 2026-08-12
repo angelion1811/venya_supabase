@@ -780,26 +780,195 @@ class _MainScreenState extends State<MainScreen> {
     print("llego a getAssignedDriverInfo");
 
     dynamic dataSnapshot = await referenceRideRequest!.get();
-    (dataSnapshot.value as Map)["car_details"] != null?
-    setState(()=>driverCarDetails = (dataSnapshot.value as Map)["car_details"].toString()):null;
+    Map rideRequestMap = dataSnapshot.value as Map;
 
-    (dataSnapshot.value as Map)["driverPhone"] != null?
-    setState(()=>driverPhone = (dataSnapshot.value as Map)["driverPhone"].toString()):null;
+    setState(() {
+      (rideRequestMap["car_details"] != null)?
+      driverCarDetails = rideRequestMap["car_details"].toString():null;
 
-    (dataSnapshot.value as Map)["driverName"] != null?
-    setState(()=> driverName = (dataSnapshot.value as Map)["driverName"].toString()):null;
+      (rideRequestMap["driverPhone"] != null)?
+      driverPhone = rideRequestMap["driverPhone"].toString():null;
 
-    (dataSnapshot.value as Map)["ratings"] != null?
-    setState(()=> driverRatings = (dataSnapshot.snapshot.value as Map)["ratings"].toString()):null;
+      (rideRequestMap["driverName"] != null)?
+      driverName = rideRequestMap["driverName"].toString():null;
 
-    if((dataSnapshot.value as Map)["driverLocation"] != null) {
-      double driverCurrentPositionLat = double.parse((dataSnapshot.value as Map)["driverLocation"]["latitude"].toString());
-      double driverCurrentPositionLng = double.parse((dataSnapshot.value as Map)["driverLocation"]["longitude"].toString());
+      (rideRequestMap["ratings"] != null)?
+      driverRatings = rideRequestMap["ratings"].toString():null;
+    });
+
+    // Consultar la informacion actual del conductor en su nodo de Firebase
+    // para que siempre se muestre el vehiculo activo mas reciente y no el
+    // que tenia registrado en viajes anteriores.
+    String? assignedDriverId = rideRequestMap["driverId"]?.toString();
+    if (assignedDriverId != null && assignedDriverId.isNotEmpty && assignedDriverId != "-") {
+      await _loadCurrentDriverInfo(assignedDriverId);
+    }
+
+    if(rideRequestMap["driverLocation"] != null) {
+      double driverCurrentPositionLat = double.parse(rideRequestMap["driverLocation"]["latitude"].toString());
+      double driverCurrentPositionLng = double.parse(rideRequestMap["driverLocation"]["longitude"].toString());
       LatLng driverCurrentPositionLatLng = LatLng(driverCurrentPositionLat, driverCurrentPositionLng);
       updateArrivalTimeToUserPickUpLocation(driverCurrentPositionLatLng);
       streamDriverLocationToGetPassenger();
     }
     showUIForAssignedDriverInfo();
+  }
+
+  Future<void> _loadCurrentDriverInfo(String driverId) async {
+    try {
+      DatabaseEvent event = await FirebaseDatabase.instance
+          .ref()
+          .child("drivers")
+          .child(driverId)
+          .once();
+      DataSnapshot snapshot = event.snapshot;
+      if (snapshot.value == null) return;
+
+      Map driverMap = snapshot.value as Map;
+
+      setState(() {
+        if (driverMap["names"] != null) driverName = driverMap["names"].toString();
+        if (driverMap["phone"] != null) driverPhone = driverMap["phone"].toString();
+        if (driverMap["ratings"] != null) driverRatings = driverMap["ratings"].toString();
+
+        // Vehiculo activo actual (esquema multi-vehiculo) o car_details legacy
+        final activeVehicle = driverMap["active_vehicle"];
+        if (activeVehicle is Map) {
+          driverCarDetails = _formatCarDetails(activeVehicle);
+        } else if (driverMap["car_details"] is Map) {
+          driverCarDetails = _formatCarDetails(driverMap["car_details"] as Map);
+        }
+      });
+
+      await _loadDriverPhotos(driverId, driverMap);
+    } catch (e) {
+      log('Error al cargar datos actuales del conductor: $e');
+    }
+  }
+
+  Widget _driverAvatarPlaceholder(bool darkTheme) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: darkTheme ? Colors.amber.shade400 : Colors.lightBlue,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(Icons.person, color: darkTheme ? Colors.black : Colors.white),
+    );
+  }
+
+  String _formatCarDetails(Map car) {
+    final model = car["car_model"]?.toString() ?? '';
+    final number = car["car_number"]?.toString() ?? '';
+    final color = car["car_color"]?.toString() ?? '';
+    final parts = [model, number, color.isNotEmpty ? '($color)' : '']
+        .where((p) => p.isNotEmpty)
+        .join(' ');
+    return parts.isEmpty
+        ? (driverCarDetails.isNotEmpty ? driverCarDetails : "Vehículo")
+        : parts;
+  }
+
+  Future<void> _loadDriverPhotos(String driverId, Map driverMap) async {
+    try {
+      String? driverPhoto;
+      String? vehiclePhoto;
+
+      // 1) Foto del conductor desde el nodo del conductor en RTDB:
+      //    image_url (foto de perfil) o documents.imageSelfie
+      final imageUrl = driverMap["image_url"]?.toString();
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        driverPhoto = imageUrl;
+      } else if (driverMap["documents"] is Map) {
+        final docs = driverMap["documents"] as Map;
+        driverPhoto =
+            docs["imageSelfie"]?.toString() ?? docs["imageSelfieWithDocument"]?.toString();
+      }
+
+      // 2) Foto del vehiculo activo desde el nodo del conductor en RTDB:
+      //    active_vehicle.image o car_details.image
+      final activeVehicle = driverMap["active_vehicle"];
+      if (activeVehicle is Map) {
+        final vehicleImage = activeVehicle["image"]?.toString();
+        if (vehicleImage != null && vehicleImage.isNotEmpty) {
+          vehiclePhoto = vehicleImage;
+        }
+      }
+      if (vehiclePhoto == null || vehiclePhoto.isEmpty) {
+        final carDetails = driverMap["car_details"];
+        if (carDetails is Map) {
+          final carImage = carDetails["image"]?.toString();
+          if (carImage != null && carImage.isNotEmpty) {
+            vehiclePhoto = carImage;
+          }
+        }
+      }
+
+      // 3) Fallback: car_documents legacy en el nodo del conductor
+      if ((driverPhoto == null || driverPhoto.isEmpty) ||
+          (vehiclePhoto == null || vehiclePhoto.isEmpty)) {
+        final carDocs = driverMap['car_documents'];
+        if (carDocs is Map && carDocs['imageVehicle'] != null) {
+          vehiclePhoto ??= carDocs['imageVehicle'].toString();
+        }
+      }
+
+      // 4) Fallback final: consultar Supabase por si el RTDB aún no tiene
+      //    las fotos (conductor con versión anterior de la app).
+      if ((driverPhoto == null || driverPhoto.isEmpty) ||
+          (vehiclePhoto == null || vehiclePhoto.isEmpty)) {
+        final driverRecord = await SupabaseService.client
+            .from('drivers')
+            .select('image_url, documents, active_vehicle_id')
+            .eq('id', driverId)
+            .maybeSingle();
+
+        if (driverRecord != null) {
+          Map driverInfo = driverRecord as Map;
+          if (driverPhoto == null || driverPhoto.isEmpty) {
+            final img = driverInfo['image_url']?.toString();
+            if (img != null && img.isNotEmpty) {
+              driverPhoto = img;
+            } else {
+              final documents = driverInfo['documents'];
+              if (documents is Map && documents['imageSelfie'] != null) {
+                driverPhoto = documents['imageSelfie'].toString();
+              }
+            }
+          }
+
+          if (vehiclePhoto == null || vehiclePhoto.isEmpty) {
+            String? activeVehicleId = driverInfo['active_vehicle_id']?.toString();
+            if (activeVehicleId == null || activeVehicleId.isEmpty) {
+              activeVehicleId = driverMap['active_vehicle_id']?.toString();
+            }
+
+            if (activeVehicleId != null && activeVehicleId.isNotEmpty) {
+              final vehicleRecord = await SupabaseService.client
+                  .from('vehicles')
+                  .select('documents')
+                  .eq('id', activeVehicleId)
+                  .maybeSingle();
+              if (vehicleRecord != null) {
+                Map vehicleInfo = vehicleRecord as Map;
+                final docs = vehicleInfo['documents'];
+                if (docs is Map && docs['imageVehicle'] != null) {
+                  vehiclePhoto = docs['imageVehicle'].toString();
+                }
+              }
+            }
+          }
+        }
+      }
+
+      setState(() {
+        driverPhotoUrl = driverPhoto ?? "";
+        driverVehiclePhotoUrl = vehiclePhoto ?? "";
+      });
+    } catch (e) {
+      log('Error al cargar fotos del conductor: $e');
+    }
   }
 
   streamDriverLocationToGetPassenger(){
@@ -977,6 +1146,8 @@ class _MainScreenState extends State<MainScreen> {
       driverPhone = "";
       driverCarDetails = "";
       driverRatings = "";
+      driverPhotoUrl = "";
+      driverVehiclePhotoUrl = "";
       driverRideStatus = "Chofer está viniendo";
       userRideRequestStatus = "";
     });
@@ -1010,6 +1181,8 @@ class _MainScreenState extends State<MainScreen> {
       driverPhone = "";
       driverCarDetails = "";
       driverRatings = "";
+      driverPhotoUrl = "";
+      driverVehiclePhotoUrl = "";
       driverRideStatus = "Chofer está viniendo";
       userRideRequestStatus = "";
     });
@@ -1039,6 +1212,8 @@ class _MainScreenState extends State<MainScreen> {
     driverPhone = "";
     driverCarDetails = "";
     driverRatings = "";
+    driverPhotoUrl = "";
+    driverVehiclePhotoUrl = "";
     driverRideStatus = "Chofer está viniendo";
     userRideRequestStatus = "";
     _fareHourMultipliers = [];
@@ -1648,7 +1823,7 @@ class _MainScreenState extends State<MainScreen> {
                   padding: EdgeInsets.all(10),
                   child: Column(
                     children: [
-                      Text(driverRideStatus, style: TextStyle(fontWeight: FontWeight.bold,)),
+                      Text(driverRideStatus, style: TextStyle(fontWeight: FontWeight.bold, color: darkTheme ? Colors.white : Colors.black)),
                       SizedBox(height: 5),
                       Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                       SizedBox(height: 5),
@@ -1659,20 +1834,24 @@ class _MainScreenState extends State<MainScreen> {
                         children:[
                           Row(
                             children: [
-                              Container(
-                                padding: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: darkTheme ? Colors.amber.shade400: Colors.lightBlue,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(Icons.person, color: darkTheme ? Colors.black : Colors.white),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: driverPhotoUrl.isNotEmpty
+                                    ? Image.network(
+                                        driverPhotoUrl,
+                                        width: 48,
+                                        height: 48,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => _driverAvatarPlaceholder(darkTheme),
+                                      )
+                                    : _driverAvatarPlaceholder(darkTheme),
                               ),
                               SizedBox(width: 10,),
                               Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children:[
                                     Text(driverName,
-                                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)
+                                        style: TextStyle(fontWeight: FontWeight.bold, color: darkTheme ? Colors.white : Colors.black)
                                     ),
                                     Row(
                                         children:[
@@ -1680,9 +1859,9 @@ class _MainScreenState extends State<MainScreen> {
 
                                           SizedBox(width: 5),
 
-                                          Text("0.00",
+                                          Text(driverRatings.isNotEmpty ? driverRatings : "0.00",
                                               style: TextStyle(
-                                                  color: Colors.black
+                                                  color: darkTheme ? Colors.white : Colors.black
                                               )
                                           )
                                         ]
@@ -1696,9 +1875,22 @@ class _MainScreenState extends State<MainScreen> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children:[
-                              Image.asset("images/car.png", scale: 10,),
+                              driverVehiclePhotoUrl.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        driverVehiclePhotoUrl,
+                                        width: 64,
+                                        height: 44,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => Image.asset("images/car.png", scale: 10),
+                                      ),
+                                    )
+                                  : Image.asset("images/car.png", scale: 10,),
 
-                              Text(driverCarDetails, style: TextStyle(fontSize: 12), )
+                              SizedBox(height: 3,),
+
+                              Text(driverCarDetails, style: TextStyle(fontSize: 12, color: darkTheme ? Colors.white : Colors.black), )
                               
                             ]
                           ),
