@@ -288,14 +288,21 @@ class _PrecisePickUpLocationScreenState extends State<PrecisePickUpLocationScree
                             fontSize: 16,
                           )
                         ),
-                        child: Text(
-                          "Asignar localización de origen",
-                          style: TextStyle(
-                            color: darkTheme ? Colors.black: Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
+                        child: 
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, color: Colors.green),
+                            SizedBox(width: 10,),
+                            Text(
+                              "Asignar localización de origen",
+                              style: TextStyle(
+                                color: darkTheme ? Colors.black: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            
+                          ],
+                        )
                       ),
                     ),
 

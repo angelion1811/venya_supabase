@@ -1178,7 +1178,7 @@ class _MainScreenState extends State<MainScreen> {
                                       },
                                       child: Row(
                                         children: [
-                                          Icon(Icons.location_on_outlined, color: darkTheme? Colors.amber.shade400: Colors.blue ),
+                                          Icon(Icons.my_location, color: Colors.green),
                                           SizedBox(width: 10,),
                                           Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1223,7 +1223,7 @@ class _MainScreenState extends State<MainScreen> {
                                     },
                                     child: Row(
                                       children: [
-                                        Icon(Icons.location_on_outlined, color: darkTheme? Colors.amber.shade400: Colors.blue ),
+                                        Icon(Icons.location_on, color: Colors.red),
                                         SizedBox(width: 10,),
                                         Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1708,6 +1708,7 @@ class _MainScreenState extends State<MainScreen> {
                       SizedBox(height: 5),
                       Divider(thickness: 1, color: darkTheme ? Colors.grey : Colors.grey[300],),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           ElevatedButton.icon(
                             onPressed: () {
@@ -1715,7 +1716,7 @@ class _MainScreenState extends State<MainScreen> {
                             },
                             style:ElevatedButton.styleFrom(backgroundColor: darkTheme? Colors.amber.shade400: Colors.blue),
                             icon: Icon(Icons.phone),
-                            label: Text("LLamar al conductor"),
+                            label: Text("LLamar al conductor", style: TextStyle(fontSize: 12),),
                           ),
                           if (userRideRequestStatus == "accepted" || userRideRequestStatus == "arrived")
                             Row( children:[
@@ -1747,7 +1748,7 @@ class _MainScreenState extends State<MainScreen> {
                                   },
                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                                   icon: const Icon(Icons.cancel, color: Colors.white),
-                                  label: const Text("Cancelar Viaje", style: TextStyle(color: Colors.white)),
+                                  label: const Text("Cancelar Viaje", style: TextStyle(color: Colors.white, fontSize: 12)),
                               ),
                             ],
                           )
