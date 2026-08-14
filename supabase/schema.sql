@@ -20,10 +20,10 @@ CREATE TABLE IF NOT EXISTS public.users (
     names TEXT NOT NULL,
     surnames TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    phone TEXT,
+    phone TEXT UNIQUE,
     address TEXT,
     identification_type TEXT, -- V, E, P (Venezolano, Extranjero, Pasaporte)
-    identification_number TEXT,
+    identification_number TEXT UNIQUE,
     documents JSONB, -- Almacena URLs de imágenes: {imageSelfie, imageDocument, imageSelfieWithDocument}
     car_details JSONB, -- Almacena info del vehículo: {car_mark, car_model, car_year, car_number, car_color, type}
     car_documents JSONB, -- Almacena URLs de documentos del vehículo

@@ -32,6 +32,46 @@ class SupabaseService {
   /// Obtiene el token de acceso actual
   static String? get accessToken => client.auth.currentSession?.accessToken;
 
+  /// Verifica que email, teléfono y cédula no estén ya registrados.
+  /// Retorna un mapa de error si hay duplicados, o null si todo está libre.
+  static Future<Map<String, dynamic>?> _checkDuplicates({
+    required String email,
+    required String phone,
+    required String identificationNumber,
+  }) async {
+    final conflictingField = await client.rpc(
+      'check_user_uniqueness',
+      params: <String, dynamic>{
+        'p_email': email,
+        'p_phone': phone,
+        'p_identification_number': identificationNumber,
+      },
+    );
+
+    if (conflictingField == null || conflictingField == '') return null;
+
+    final field = conflictingField.toString();
+    final errors = <String, dynamic>{};
+
+    switch (field) {
+      case 'email':
+        errors['email'] = <String>['El correo ya está registrado.'];
+        break;
+      case 'phone':
+        errors['phone'] = <String>['El teléfono ya está registrado.'];
+        break;
+      case 'identification_number':
+        errors['identification_number'] = <String>['La cédula ya está registrada.'];
+        break;
+    }
+
+    return <String, dynamic>{
+      'success': false,
+      'statusCode': 400,
+      'errors': errors,
+    };
+  }
+
   /// Registra un nuevo usuario en Supabase Auth y crea el perfil en la tabla users
   /// Retorna un mapa con el resultado de la operación
   static Future<Map<String, dynamic>> registerUser(Map<String, dynamic> userData) async {
@@ -39,6 +79,18 @@ class SupabaseService {
       log(userData.toString());
       final email = userData['email'] as String;
       final password = userData['password'] as String;
+      final phone = userData['phone'] ?? '';
+      final identificationNumber = userData['identification_number'] ?? '';
+
+      // Verificar que email, teléfono y cédula no estén ya registrados
+      final duplicateCheck = await _checkDuplicates(
+        email: email,
+        phone: phone,
+        identificationNumber: identificationNumber,
+      );
+      if (duplicateCheck != null) {
+        return duplicateCheck;
+      }
 
       // 1. Registrar usuario en Supabase Auth
       // Todos los datos se pasan en userData para que el trigger los use
