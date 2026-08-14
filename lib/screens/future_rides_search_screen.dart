@@ -186,7 +186,7 @@ class _FutureRidesSearchScreenState extends State<FutureRidesSearchScreen> {
                           itemBuilder: (context, index) {
                             final ride = _filteredRides[index];
                             final date = DateTime.parse(ride['ride_date']);
-                            final driver = ride['drivers'];
+                            final driver = ride['users'];
                             final available = ride['total_seats'] - ride['booked_seats'];
                             final isUserPassenger = ride['is_user_passenger'] ?? false;
                             final userSeats = ride['user_booked_seats'] ?? 0;

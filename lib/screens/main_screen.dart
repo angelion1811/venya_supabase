@@ -919,7 +919,7 @@ class _MainScreenState extends State<MainScreen> {
       if ((driverPhoto == null || driverPhoto.isEmpty) ||
           (vehiclePhoto == null || vehiclePhoto.isEmpty)) {
         final driverRecord = await SupabaseService.client
-            .from('drivers')
+            .from('users')
             .select('image_url, documents, active_vehicle_id')
             .eq('id', driverId)
             .maybeSingle();

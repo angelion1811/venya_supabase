@@ -52,6 +52,7 @@ class SupabaseService {
           'address': userData['address'] ?? '',
           'identification_type': userData['identification_type'] ?? '',
           'identification_number': userData['identification_number'] ?? '',
+          'rol': 'pasajero',
         },
       );
 
@@ -457,7 +458,7 @@ class SupabaseService {
 
       final rides = await client
           .from('rides')
-          .select('*, drivers(names, surnames, documents)')
+          .select('*, users!rides_driver_id_fkey(names, surnames, documents)')
           .eq('user_id', userId)
           .filter('rating', 'is', 'null')  // Buscar viajes SIN calificación (rating = NULL)
           .order('created_at', ascending: false);
@@ -477,7 +478,7 @@ class SupabaseService {
     try {
       final result = await client
           .from('rides')
-          .select('*, drivers(names, surnames)')
+          .select('*, users!rides_driver_id_fkey(names, surnames)')
           .or('id.eq.$rideId,firebase_ride_id.eq.$rideId')
           .maybeSingle();
 
@@ -532,7 +533,7 @@ class SupabaseService {
 
       final rides = await client
           .from('rides')
-          .select('*, drivers(names, surnames, documents)')
+          .select('*, users!rides_driver_id_fkey(names, surnames, documents)')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
@@ -564,7 +565,7 @@ class SupabaseService {
 
       // La actualización del promedio del conductor se debe hacer con un trigger en la BD
       // o desde la app del conductor. La app de pasajeros no tiene permisos para actualizar
-      // la tabla de drivers (o ni siquiera existe en su esquema).
+      // la tabla de users de otro usuario.
 
       return {'success': true};
     } catch (error) {
@@ -658,7 +659,7 @@ class SupabaseService {
       final userId = currentUser?.id;
       final result = await client
           .from('future_rides')
-          .select('*, drivers(names, surnames, phone, car_details), future_ride_passengers(user_id, seats_booked, status)')
+          .select('*, users!future_rides_driver_id_fkey(names, surnames, phone, car_details), future_ride_passengers(user_id, seats_booked, status)')
           .eq('status', 'active')
           .gte('ride_date', DateTime.now().toIso8601String())
           .order('ride_date', ascending: true);

@@ -54,8 +54,8 @@ class TripsHistoryModel {
     vehicleType = json["vehicle_type"]?.toString();
 
     // Parse driver details if joined
-    if (json["drivers"] != null) {
-      final driver = json["drivers"] as Map;
+    if (json["users"] != null) {
+      final driver = json["users"] as Map;
       driverName = "${driver["names"] ?? ""} ${driver["surnames"] ?? ""}".trim();
       if (driverName!.isEmpty) driverName = "Conductor";
       if (driver["documents"] != null) {

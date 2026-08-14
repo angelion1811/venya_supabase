@@ -11,8 +11,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =============================================
 -- TABLA: users
--- Almacena la información de los usuarios
+-- Almacena la información de todos los usuarios (pasajeros, conductores, profesionales, negocios y otros)
 -- Se vincula con auth.users de Supabase Auth
+-- Cada usuario tiene un rol: 'pasajero', 'conductor', 'profesional', 'negocio' u 'otro'
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -24,8 +25,16 @@ CREATE TABLE IF NOT EXISTS public.users (
     identification_type TEXT, -- V, E, P (Venezolano, Extranjero, Pasaporte)
     identification_number TEXT,
     documents JSONB, -- Almacena URLs de imágenes: {imageSelfie, imageDocument, imageSelfieWithDocument}
+    car_details JSONB, -- Almacena info del vehículo: {car_mark, car_model, car_year, car_number, car_color, type}
+    car_documents JSONB, -- Almacena URLs de documentos del vehículo
     blocked BOOLEAN DEFAULT FALSE,
     verified BOOLEAN DEFAULT FALSE,
+    rol TEXT DEFAULT 'pasajero', -- pasajero, conductor, profesional, negocio, otro
+    balance DECIMAL(10,2) DEFAULT 0,
+    current_latitude DECIMAL(10, 8),
+    current_longitude DECIMAL(11, 8),
+    is_online BOOLEAN DEFAULT FALSE,
+    image_url TEXT, -- Foto de perfil
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -124,16 +133,18 @@ CREATE TRIGGER update_rides_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================
--- FUNCIÓN: Manejar nuevo usuario registrado
+-- FUNCIÓN: Manejar nuevo usuario (pasajero, conductor, profesional, negocio u otro) registrado
 -- Se ejecuta automáticamente cuando un usuario
 -- se registra en Supabase Auth
+-- El rol se toma del metadata (por defecto 'pasajero')
 -- =============================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
     INSERT INTO public.users (
         id, email, names, surnames, phone, address,
-        identification_type, identification_number, blocked, verified
+        identification_type, identification_number, blocked, verified,
+        rol, balance
     )
     VALUES (
         NEW.id,
@@ -145,7 +156,9 @@ BEGIN
         COALESCE(NEW.raw_user_meta_data->>'identification_type', ''),
         COALESCE(NEW.raw_user_meta_data->>'identification_number', ''),
         FALSE,
-        FALSE
+        FALSE,
+        COALESCE(NEW.raw_user_meta_data->>'rol', 'pasajero'),
+        0
     );
     RETURN NEW;
 END;
