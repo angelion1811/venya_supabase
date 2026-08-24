@@ -168,12 +168,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 Container(
-                    padding: EdgeInsets.all(50),
-                    decoration: BoxDecoration(
-                      color: Colors.lightBlue,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.person, color: Colors.white,),
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.lightBlue,
+                    shape: BoxShape.circle,
+                  ),
+                  child: (userModelCurrentInfo!.documents is Map && userModelCurrentInfo!.documents['imageSelfie'] != null)
+                      ? ClipOval(
+                          child: Image.network(
+                            userModelCurrentInfo!.documents['imageSelfie'].toString(),
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Icon(Icons.person, size: 60, color: Colors.white),
+                          ),
+                        )
+                      : Icon(Icons.person, size: 60, color: Colors.white),
                 ),
 
                 SizedBox(height: 30,),
